@@ -61,6 +61,14 @@ export class StateStore {
     }
   }
 
+  clear(): void {
+    try {
+      this.storage()?.removeItem(this.storageKey);
+    } catch {
+      // nothing stored
+    }
+  }
+
   save(state: WidgetState): void {
     try {
       const trimmed = { ...state, items: state.items.slice(-MAX_ITEMS) };

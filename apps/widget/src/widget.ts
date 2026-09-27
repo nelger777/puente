@@ -7,7 +7,7 @@ import { STYLES } from "./styles";
 
 export const ASK_FOR_PERSON = "Quiero hablar con una persona por WhatsApp";
 
-type Api = Pick<WidgetApi, "chat" | "requestContact" | "trackEvent">;
+export type ChatApi = Pick<WidgetApi, "chat" | "requestContact" | "trackEvent">;
 
 const CHAT_ICON =
   '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>';
@@ -30,8 +30,9 @@ export class ChatWidget {
   constructor(
     root: ShadowRoot,
     private readonly config: WidgetConfigResponse,
-    private readonly api: Api,
+    private readonly api: ChatApi,
     private readonly store: StateStore,
+    options: { inline?: boolean } = {},
   ) {
     this.state = store.load();
     const hasUserMessages = this.state.items.some((i) => i.kind === "user");
@@ -140,6 +141,10 @@ export class ChatWidget {
     style.textContent = STYLES;
     root.append(style, this.panel, this.launcher);
     this.renderAll();
+    if (options.inline) {
+      host.classList.add("inline");
+      this.panel.hidden = false;
+    }
   }
 
   setOpen(open: boolean): void {

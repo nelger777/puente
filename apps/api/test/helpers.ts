@@ -4,6 +4,7 @@ import { createDb, type Db } from "../src/db/client";
 import type { LlmTransport } from "../src/engine/llm";
 import type { Business, Prisma } from "../src/generated/prisma/client";
 import { newId, newPublicKey } from "../src/lib/ids";
+import { hashPassword } from "../src/lib/password";
 import type { MailMessage, Mailer } from "../src/services/mailer";
 
 export function testDb(): Db {
@@ -151,6 +152,7 @@ export const TEST_ENV: AppEnv = {
   PANEL_URL: "https://panel.puente.test",
   PUBLIC_API_URL: "https://api.puente.test",
   WIDGET_CDN_URL: "https://cdn.puente.test",
+  SESSION_SECRET: "test-session-secret-0123456789abcdef",
 };
 
 export function makeApp(db: Db, deps: Partial<AppDeps> = {}) {
@@ -179,4 +181,35 @@ export function postChat(
     headers: { origin },
     payload: { visitorId: "v_test", conversationId: null, conversationToken: null, ...body },
   });
+}
+
+export const PANEL_ORIGIN = "https://panel.puente.test";
+export const PASSWORD = "clave-segura-123";
+
+let cachedHash: Promise<string> | undefined;
+
+export async function createUser(
+  db: Db,
+  businessId: string,
+  role: "ADMIN" | "AGENT" = "ADMIN",
+  email = `${role.toLowerCase()}-${newId("usr")}@test.com`,
+) {
+  cachedHash ??= hashPassword(PASSWORD);
+  return db.user.create({
+    data: { id: newId("usr"), businessId, email, role, passwordHash: await cachedHash },
+  });
+}
+
+/** Logs in through the real endpoint and returns the Cookie header to reuse. */
+export async function loginAs(app: ReturnType<typeof buildApp>, email: string): Promise<string> {
+  const res = await app.inject({
+    method: "POST",
+    url: "/v1/auth/login",
+    headers: { origin: PANEL_ORIGIN },
+    payload: { email, password: PASSWORD },
+  });
+  if (res.statusCode !== 200) throw new Error(`login failed: ${res.statusCode} ${res.body}`);
+  const cookie = res.cookies.find((c) => c.name === "puente_session");
+  if (!cookie) throw new Error("no session cookie");
+  return `puente_session=${cookie.value}`;
 }

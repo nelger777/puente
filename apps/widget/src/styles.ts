@@ -120,4 +120,12 @@ details button {
 }
 .error { color: #B42318; font-size: 12px; }
 .error:empty { display: none; }
+
+/* Inline mode: the panel's "Probar" screen renders the chat inside the page. */
+:host(.inline) { position: relative; right: auto; bottom: auto; z-index: auto; display: block; height: 100%; }
+:host(.inline) .panel {
+  position: relative; inset: auto; right: auto; bottom: auto; width: 100%; height: 100%;
+  max-height: none; box-shadow: none; border: 1px solid var(--line); border-radius: 16px;
+}
+:host(.inline) .launcher, :host(.inline) .close { display: none; }
 `;

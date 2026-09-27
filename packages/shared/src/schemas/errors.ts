@@ -6,6 +6,11 @@ export const ApiErrorCodeSchema = z.enum([
   "business_not_found",
   "handoff_not_found",
   "rate_limited",
+  "unauthorized",
+  "forbidden",
+  "invalid_credentials",
+  "too_many_attempts",
+  "conflict",
   "not_found",
   "internal_error",
 ]);

@@ -52,6 +52,8 @@ export interface ChatContext {
   /** Step 1 (resolveBusiness) runs in the route, which needs it to answer CORS. */
   business: Business;
   originHost: string;
+  /** Panel "Probar": no origin check, no e-mails, excluded from inbox and metrics. */
+  isPreview?: boolean;
 }
 
 interface AssistantStats {
@@ -64,7 +66,7 @@ interface AssistantStats {
 /** POST /v1/chat pipeline (docs/SPEC.md §5). Always answers; failures become handoffs. */
 export async function handleChat(
   deps: EngineDeps,
-  input: ChatRequest,
+  input: Omit<ChatRequest, "key">,
   ctx: ChatContext,
 ): Promise<ChatResponse> {
   const { db } = deps;
@@ -79,6 +81,7 @@ export async function handleChat(
     conversationToken: input.conversationToken,
     visitorId: input.visitorId,
     originHost,
+    isPreview: ctx.isPreview ?? false,
   });
 
   // 4–5: store the message and count it atomically; over the limit → hand off without the LLM.

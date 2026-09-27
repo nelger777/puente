@@ -7,7 +7,15 @@ import { buildApp } from "../src/app";
 import { createDb } from "../src/db/client";
 import type { LlmTransport } from "../src/engine/llm";
 import { loadRootEnv } from "../src/lib/load-env";
-import { createBusiness, FakeMailer, llmMessage, resetDb, TEST_ENV } from "./helpers";
+import {
+  createBusiness,
+  createUser,
+  FakeMailer,
+  llmMessage,
+  PASSWORD,
+  resetDb,
+  TEST_ENV,
+} from "./helpers";
 
 loadRootEnv();
 
@@ -24,7 +32,9 @@ execSync("pnpm exec prisma migrate deploy", {
 
 const db = createDb(url);
 await resetDb(db);
-await createBusiness(db, { publicKey: E2E_KEY, allowedDomains: [] });
+const business = await createBusiness(db, { publicKey: E2E_KEY, allowedDomains: [] });
+export const E2E_ADMIN = { email: "admin@e2e.test", password: PASSWORD };
+await createUser(db, business.id, "ADMIN", E2E_ADMIN.email);
 
 /** Answers by keyword, like a well-behaved model would. */
 const ruleLlm: LlmTransport = {
@@ -64,7 +74,13 @@ const ruleLlm: LlmTransport = {
 const app = buildApp(
   {
     db,
-    env: { ...TEST_ENV, NODE_ENV: "development", LLM_TIMEOUT_MS: 5000 },
+    env: {
+      ...TEST_ENV,
+      NODE_ENV: "development",
+      LLM_TIMEOUT_MS: 5000,
+      // The panel e2e runs Vite on this origin and proxies /v1 here.
+      PANEL_URL: process.env.E2E_PANEL_URL ?? "http://localhost:5181",
+    },
     llm: ruleLlm,
     mailer: new FakeMailer(),
   },

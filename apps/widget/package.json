@@ -19,5 +19,8 @@
   },
   "dependencies": {
     "@puente/shared": "workspace:*"
+  },
+  "exports": {
+    "./embed": "./src/embed.ts"
   }
 }

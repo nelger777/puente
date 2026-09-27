@@ -1,11 +1,15 @@
 import { randomUUID } from "node:crypto";
+import cookie from "@fastify/cookie";
 import Fastify, { type FastifyError, type FastifyServerOptions } from "fastify";
 import type { Db } from "./db/client";
 import type { LlmTransport } from "./engine/llm";
+import type { EngineDeps } from "./engine/pipeline";
 import { IpRateLimiter } from "./engine/rate-limits";
 import { BackgroundTasks } from "./lib/background";
 import type { Env } from "./lib/env";
 import { ApiError } from "./lib/errors";
+import { adminRoutes } from "./routes/admin";
+import { authRoutes } from "./routes/auth";
 import { publicRoutes } from "./routes/public";
 import type { Mailer } from "./services/mailer";
 import { Notifier } from "./services/notifications";
@@ -18,7 +22,13 @@ declare module "fastify" {
 
 export type AppEnv = Pick<
   Env,
-  "NODE_ENV" | "LLM_MODEL" | "LLM_TIMEOUT_MS" | "PANEL_URL" | "PUBLIC_API_URL" | "WIDGET_CDN_URL"
+  | "NODE_ENV"
+  | "LLM_MODEL"
+  | "LLM_TIMEOUT_MS"
+  | "PANEL_URL"
+  | "PUBLIC_API_URL"
+  | "WIDGET_CDN_URL"
+  | "SESSION_SECRET"
 >;
 
 export interface AppDeps {
@@ -70,21 +80,41 @@ export function buildApp(deps: AppDeps, options: FastifyServerOptions = {}) {
   app.get("/health", () => ({ status: "ok" }));
 
   const { env } = deps;
-  const notifier = new Notifier(deps.db, deps.mailer, background, env.PANEL_URL);
+  const engine: EngineDeps = {
+    db: deps.db,
+    llm: deps.llm,
+    llmConfig: { model: env.LLM_MODEL, timeoutMs: env.LLM_TIMEOUT_MS },
+    limiter: deps.limiter ?? new IpRateLimiter(30, 60_000),
+    notifier: new Notifier(deps.db, deps.mailer, background, env.PANEL_URL),
+    internalOrigins: [env.PANEL_URL, env.PUBLIC_API_URL, env.WIDGET_CDN_URL].map(
+      (u) => new URL(u).origin,
+    ),
+    now: deps.now ?? (() => new Date()),
+  };
+  const panelOrigin = new URL(env.PANEL_URL).origin;
+
+  void app.register(cookie);
+  void app.register(publicRoutes({ ...engine, allowLocalhost: env.NODE_ENV === "development" }), {
+    prefix: "/v1",
+  });
   void app.register(
-    publicRoutes({
+    authRoutes({
       db: deps.db,
-      llm: deps.llm,
-      llmConfig: { model: env.LLM_MODEL, timeoutMs: env.LLM_TIMEOUT_MS },
-      limiter: deps.limiter ?? new IpRateLimiter(30, 60_000),
-      notifier,
-      internalOrigins: [env.PANEL_URL, env.PUBLIC_API_URL, env.WIDGET_CDN_URL].map(
-        (u) => new URL(u).origin,
-      ),
-      allowLocalhost: env.NODE_ENV === "development",
-      now: deps.now ?? (() => new Date()),
+      sessionSecret: env.SESSION_SECRET,
+      panelOrigin,
+      limiter: engine.limiter,
+      now: engine.now,
     }),
     { prefix: "/v1" },
+  );
+  void app.register(
+    adminRoutes({
+      ...engine,
+      sessionSecret: env.SESSION_SECRET,
+      panelOrigin,
+      widgetBaseUrl: env.WIDGET_CDN_URL,
+    }),
+    { prefix: "/v1/admin" },
   );
 
   return app;

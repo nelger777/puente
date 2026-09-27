@@ -4,6 +4,6 @@ coverage/
 .env
 *.log
 apps/api/src/generated/
-apps/widget/test-results/
-apps/widget/playwright-report/
+test-results/
+playwright-report/
 .DS_Store

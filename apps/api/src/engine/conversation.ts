@@ -22,7 +22,13 @@ export async function loadOrCreateConversation(
 ): Promise<{ conversation: Conversation; token: string }> {
   if (input.conversationId && input.conversationToken) {
     const existing = await db.conversation.findFirst({
-      where: { id: input.conversationId, businessId: business.id, status: { not: "CLOSED" } },
+      where: {
+        id: input.conversationId,
+        businessId: business.id,
+        // "Probar" and real conversations never mix.
+        isPreview: input.isPreview ?? false,
+        status: { not: "CLOSED" },
+      },
     });
     if (existing && tokenMatches(input.conversationToken, existing.tokenHash)) {
       return { conversation: existing, token: input.conversationToken };

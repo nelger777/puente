@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "node --watch --import tsx src/server.ts",
     "start": "tsx src/server.ts",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
+    "@fastify/cookie": "^11.1.2",
     "@paralleldrive/cuid2": "^3.3.0",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",

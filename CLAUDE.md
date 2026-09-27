@@ -62,6 +62,7 @@ docker-compose.yml
 - `pnpm dev` — levanta api, widget y panel en modo desarrollo.
 - `pnpm test` / `pnpm test:e2e` — pruebas unitarias / Playwright (e2e: requiere `docker compose up -d` y una vez `pnpm --filter @puente/widget exec playwright install chromium`).
 - Demo del widget: `pnpm dev` y abrir http://localhost:5173/demo/index.html (clave `pk_demo_opticamirador` de la semilla).
+- Panel: `pnpm dev` y abrir http://localhost:5174 (usuario de la semilla `admin@opticamirador.com` / `puente-admin-dev`).
 - `pnpm db:migrate` / `pnpm db:seed` — migraciones y datos de ejemplo.
 - `pnpm lint` / `pnpm typecheck` / `pnpm format`.
 - Las pruebas de la API usan la base `puente_test` (`TEST_DATABASE_URL`) y aplican las migraciones solas.
