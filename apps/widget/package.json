@@ -5,12 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 5173",
-    "build": "vite build",
+    "build": "vite build && node scripts/check-size.mjs",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^24.19.0",
+    "happy-dom": "^20.14.5",
     "vite": "^8.3.1",
     "vitest": "^4.1.11"
+  },
+  "dependencies": {
+    "@puente/shared": "workspace:*"
   }
 }

@@ -3,14 +3,59 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Demo · Widget Puente</title>
+    <title>Óptica Mirador · Sitio de prueba</title>
+    <style>
+      body {
+        margin: 0;
+        font:
+          16px/1.5 system-ui,
+          sans-serif;
+        color: #16202a;
+        background: linear-gradient(180deg, #e6eefa, #fff 60%);
+        min-height: 100vh;
+      }
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 64px 20px;
+      }
+      h1 {
+        font-size: clamp(2rem, 6vw, 3rem);
+        margin: 0 0 12px;
+      }
+      code {
+        background: #eef2f6;
+        padding: 1px 6px;
+        border-radius: 4px;
+      }
+    </style>
   </head>
   <body>
-    <h1>Óptica Mirador (sitio de prueba)</h1>
-    <p>
-      Página local para probar el widget. Reemplaza <code>data-key</code> por la clave de la
-      semilla.
-    </p>
-    <script type="module" src="/src/index.ts" data-key="pk_demo"></script>
+    <main>
+      <h1>Óptica Mirador</h1>
+      <p>Lentes, armazones y examen visual frente a la plaza.</p>
+      <p>
+        Página local para probar el widget. Parámetros opcionales: <code>?key=</code> (clave del
+        negocio), <code>?api=</code> (URL de la API) y <code>?bundle=1</code> (usar
+        <code>dist/v1.js</code> en lugar del código fuente).
+      </p>
+    </main>
+    <script>
+      // Loads the widget exactly like a customer's site would, with overridable settings.
+      (function () {
+        var params = new URLSearchParams(location.search);
+        var script = document.createElement("script");
+        if (params.get("bundle")) {
+          script.src = "/dist/v1.js";
+          script.async = true;
+        } else {
+          script.type = "module";
+          script.src = "/src/index.ts";
+        }
+        script.dataset.key = params.get("key") || "pk_demo_opticamirador";
+        if (params.get("api")) script.dataset.api = params.get("api");
+        document.body.appendChild(script);
+      })();
+    </script>
   </body>
 </html>

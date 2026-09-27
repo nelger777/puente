@@ -14,6 +14,11 @@ if (process.env.NODE_ENV === "production" && adminPassword === DEV_ADMIN_PASSWOR
   throw new Error("Set SEED_ADMIN_PASSWORD to seed a production database");
 }
 
+// Fixed key outside production so the widget demo works without copying keys around.
+const isProduction = process.env.NODE_ENV === "production";
+const publicKey =
+  process.env.SEED_PUBLIC_KEY ?? (isProduction ? newPublicKey() : "pk_demo_opticamirador");
+
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error("DATABASE_URL is required");
 const db = createDb(databaseUrl);
@@ -68,13 +73,8 @@ async function main() {
   const business = await db.$transaction(async (tx) => {
     const biz = await tx.business.upsert({
       where: { slug: "optica-mirador" },
-      update: businessData,
-      create: {
-        id: newId("biz"),
-        slug: "optica-mirador",
-        publicKey: newPublicKey(),
-        ...businessData,
-      },
+      update: isProduction ? businessData : { ...businessData, publicKey },
+      create: { id: newId("biz"), slug: "optica-mirador", publicKey, ...businessData },
     });
 
     await tx.knowledgeItem.deleteMany({ where: { businessId: biz.id } });

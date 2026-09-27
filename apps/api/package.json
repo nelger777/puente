@@ -12,7 +12,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "e2e:server": "tsx test/e2e-server.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
