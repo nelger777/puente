@@ -153,6 +153,8 @@ export const TEST_ENV: AppEnv = {
   PUBLIC_API_URL: "https://api.puente.test",
   WIDGET_CDN_URL: "https://cdn.puente.test",
   SESSION_SECRET: "test-session-secret-0123456789abcdef",
+  LLM_PRICE_INPUT_PER_MTOK: 1,
+  LLM_PRICE_OUTPUT_PER_MTOK: 5,
 };
 
 export function makeApp(db: Db, deps: Partial<AppDeps> = {}) {

@@ -279,6 +279,9 @@ main {
   border-radius: 5px;
   height: 10px;
 }
+.usage {
+  margin-top: 16px;
+}
 .row-link {
   display: block;
   padding: 10px;

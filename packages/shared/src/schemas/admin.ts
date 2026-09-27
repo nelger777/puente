@@ -172,7 +172,20 @@ export const MetricsResponseSchema = z.object({
   /** resolvedByAssistant / conversations, 0 when there are none. */
   resolutionRate: z.number().min(0).max(1),
   handoffsByReason: z.record(HandoffReasonSchema, z.int()),
-  tokens: z.object({ input: z.int(), output: z.int(), llmCalls: z.int() }),
+  tokens: z.object({
+    input: z.int(),
+    output: z.int(),
+    llmCalls: z.int(),
+    /** Estimate from the configured per-token prices (USD). */
+    estimatedCostUsd: z.number().nonnegative(),
+    costPerConversationUsd: z.number().nonnegative(),
+  }),
+  llm: z.object({
+    /** Replies where the LLM failed and the customer was handed off. */
+    failures: z.object({ timeout: z.int(), api_error: z.int(), invalid_output: z.int() }),
+    failureRate: z.number().min(0).max(1),
+    avgLatencyMs: z.number().nullable(),
+  }),
   pendingCount: z.int(),
   recentPending: z.array(HandoffSummarySchema),
 });

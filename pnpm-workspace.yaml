@@ -7,3 +7,8 @@ onlyBuiltDependencies:
   - argon2
   - esbuild
   - prisma
+
+# Patched transitive deps of the Prisma CLI (docs/SECURITY.md).
+overrides:
+  mysql2: ">=3.23.1"
+  deepmerge-ts: ">=8.0.0"

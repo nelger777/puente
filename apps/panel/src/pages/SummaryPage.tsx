@@ -4,7 +4,7 @@ import { Link } from "react-router";
 import { api } from "../api/client";
 import { useAuth } from "../auth";
 import { Card, Empty, ErrorNote, Loading, PageHeader, ReasonTag } from "../components/ui";
-import { formatDate, formatNumber, reasonLabel } from "../lib/format";
+import { formatDate, formatNumber, formatUsd, reasonLabel } from "../lib/format";
 import { useApi } from "../lib/use-api";
 
 const PERIODS = [
@@ -97,10 +97,6 @@ export function SummaryPage() {
                     );
                   })
               )}
-              <p className="muted small">
-                IA: {formatNumber(m.tokens.llmCalls)} respuestas · {formatNumber(m.tokens.input)}{" "}
-                tokens de entrada · {formatNumber(m.tokens.output)} de salida
-              </p>
             </Card>
             <Card title={`Pendientes de atender (${m.pendingCount})`}>
               {m.recentPending.length === 0 ? (
@@ -124,6 +120,36 @@ export function SummaryPage() {
               )}
             </Card>
           </div>
+          <Card title="Uso de la IA" className="usage">
+            <dl className="kv">
+              <dt>Costo estimado</dt>
+              <dd>
+                {formatUsd(m.tokens.estimatedCostUsd)} ·{" "}
+                {formatUsd(m.tokens.costPerConversationUsd)} por conversación
+              </dd>
+              <dt>Respuestas con IA</dt>
+              <dd>
+                {formatNumber(m.tokens.llmCalls)} · {formatNumber(m.tokens.input)} tokens de entrada
+                · {formatNumber(m.tokens.output)} de salida
+              </dd>
+              <dt>Tiempo de respuesta</dt>
+              <dd>
+                {m.llm.avgLatencyMs === null
+                  ? "—"
+                  : `${formatNumber(m.llm.avgLatencyMs)} ms en promedio`}
+              </dd>
+              <dt>Fallas de la IA</dt>
+              <dd>
+                {Math.round(m.llm.failureRate * 1000) / 10}% · {m.llm.failures.timeout} por tiempo
+                agotado · {m.llm.failures.api_error} por error del servicio ·{" "}
+                {m.llm.failures.invalid_output} por respuesta inválida
+              </dd>
+            </dl>
+            <p className="muted small">
+              Estimación con los precios configurados en el servidor. En cada falla el cliente fue
+              derivado al equipo.
+            </p>
+          </Card>
         </>
       )}
     </>

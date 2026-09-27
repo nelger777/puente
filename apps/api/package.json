@@ -10,10 +10,11 @@
     "test": "vitest run",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
+    "db:migrate": "prisma migrate dev && prisma generate",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
-    "e2e:server": "tsx test/e2e-server.ts"
+    "e2e:server": "tsx test/e2e-server.ts",
+    "retention": "tsx src/scripts/retention.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

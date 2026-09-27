@@ -25,6 +25,10 @@ export const formatDate = (iso: string) => dateFormat.format(new Date(iso));
 
 export const formatNumber = (n: number) => n.toLocaleString("es");
 
+/** Small amounts need more decimals: a conversation usually costs fractions of a cent. */
+export const formatUsd = (n: number) =>
+  `US$ ${n.toLocaleString("es", { minimumFractionDigits: n > 0 && n < 0.01 ? 4 : 2, maximumFractionDigits: 4 })}`;
+
 /** wa.me needs digits only (with country code for it to open the right chat). */
 export const waChatUrl = (phone: string) => `https://wa.me/${phone.replace(/\D/g, "")}`;
 

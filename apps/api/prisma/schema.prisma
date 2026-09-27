@@ -65,6 +65,7 @@ model Conversation {
   handoffs         Handoff[]
 
   @@index([businessId, startedAt])
+  @@index([lastMessageAt])
 }
 
 enum ConversationStatus {
@@ -83,9 +84,11 @@ model Message {
   inputTokens    Int?
   outputTokens   Int?
   latencyMs      Int?
+  llmError       String? // "timeout" | "api_error" | "invalid_output" when the LLM failed
   createdAt      DateTime     @default(now())
 
   @@index([conversationId, createdAt])
+  @@index([createdAt])
 }
 
 enum MessageRole {
@@ -169,4 +172,5 @@ model Session {
   createdAt DateTime @default(now())
 
   @@index([userId])
+  @@index([expiresAt])
 }

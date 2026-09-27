@@ -29,6 +29,8 @@ export type AppEnv = Pick<
   | "PUBLIC_API_URL"
   | "WIDGET_CDN_URL"
   | "SESSION_SECRET"
+  | "LLM_PRICE_INPUT_PER_MTOK"
+  | "LLM_PRICE_OUTPUT_PER_MTOK"
 >;
 
 export interface AppDeps {
@@ -53,6 +55,12 @@ export function buildApp(deps: AppDeps, options: FastifyServerOptions = {}) {
   app.decorate("background", background);
   app.addHook("onRequest", async (request, reply) => {
     reply.header("x-request-id", request.id);
+    reply.header("x-content-type-options", "nosniff");
+    reply.header("referrer-policy", "no-referrer");
+    // Panel data and sessions must never sit in shared or browser caches.
+    if (request.url.startsWith("/v1/admin") || request.url.startsWith("/v1/auth")) {
+      reply.header("cache-control", "no-store");
+    }
   });
   app.addHook("onClose", async () => {
     await background.drain();
@@ -68,7 +76,16 @@ export function buildApp(deps: AppDeps, options: FastifyServerOptions = {}) {
         .code(status)
         .send({ error: { code: "invalid_request", message: "Invalid request" } });
     }
-    request.log.error({ err: error }, "unhandled error");
+    // Only the error kind and its stack frames: messages (e.g. Prisma validation errors) can
+    // embed customer data, which must never reach the logs.
+    request.log.error(
+      {
+        errName: error.name,
+        errCode: (error as { code?: unknown }).code,
+        stack: error.stack?.split("\n").slice(1, 8).join("\n"),
+      },
+      "unhandled error",
+    );
     return reply
       .code(500)
       .send({ error: { code: "internal_error", message: "Internal server error" } });
@@ -113,6 +130,10 @@ export function buildApp(deps: AppDeps, options: FastifyServerOptions = {}) {
       sessionSecret: env.SESSION_SECRET,
       panelOrigin,
       widgetBaseUrl: env.WIDGET_CDN_URL,
+      prices: {
+        inputPerMTok: env.LLM_PRICE_INPUT_PER_MTOK,
+        outputPerMTok: env.LLM_PRICE_OUTPUT_PER_MTOK,
+      },
     }),
     { prefix: "/v1/admin" },
   );

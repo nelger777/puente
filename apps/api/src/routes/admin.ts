@@ -27,12 +27,14 @@ import {
   setHandoffStatus,
   toBusinessResponse,
   updateBusiness,
+  type LlmPrices,
 } from "../services/admin";
 
 export interface AdminRoutesDeps extends EngineDeps {
   sessionSecret: string;
   panelOrigin: string;
   widgetBaseUrl: string;
+  prices: LlmPrices;
 }
 
 /** Panel API (docs/SPEC.md §4). Every handler scopes queries to the session's business. */
@@ -58,7 +60,8 @@ export function adminRoutes(deps: AdminRoutesDeps) {
       KnowledgeResponseSchema.parse(await listKnowledge(db, authOf(request).businessId)),
     );
 
-    app.put("/knowledge", adminOnly, async (request) => {
+    // A full knowledge base (200 × ~2,300 chars) is far above the global 16 KB body limit.
+    app.put("/knowledge", { ...adminOnly, bodyLimit: 1024 * 1024 }, async (request) => {
       const { items } = parseInput(KnowledgePutSchema, request.body);
       return KnowledgeResponseSchema.parse(
         await replaceKnowledge(db, authOf(request).businessId, items),
@@ -89,7 +92,9 @@ export function adminRoutes(deps: AdminRoutesDeps) {
     app.get("/metrics", async (request) => {
       const { from, to } = parseInput(MetricsQuerySchema, request.query);
       const business = await getBusiness(db, authOf(request).businessId);
-      return MetricsResponseSchema.parse(await getMetrics(db, business, from, to, deps.now()));
+      return MetricsResponseSchema.parse(
+        await getMetrics(db, business, from, to, deps.now(), deps.prices),
+      );
     });
 
     app.post("/preview-chat", async (request) => {

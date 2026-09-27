@@ -70,10 +70,14 @@ export async function callLlm(
   const started = Date.now();
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
+  // Set before aborting: abort() makes the in-flight call reject synchronously, and that
+  // rejection must still be classified as a timeout.
+  let timedOut = false;
   const deadline = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
-      controller.abort();
+      timedOut = true;
       reject(new DeadlineExceeded());
+      controller.abort();
     }, config.timeoutMs);
   });
   deadline.catch(() => undefined);
@@ -99,13 +103,13 @@ export async function callLlm(
     try {
       message = await attempt();
     } catch (err) {
-      if (!isRetryable(err)) throw err;
+      if (timedOut || !isRetryable(err)) throw err;
       message = await attempt();
     }
   } catch (err) {
     return {
       ok: false,
-      failure: isTimeout(err) ? "timeout" : "api_error",
+      failure: timedOut || isTimeout(err) ? "timeout" : "api_error",
       inputTokens: null,
       outputTokens: null,
       latencyMs: Date.now() - started,

@@ -20,6 +20,14 @@ import { startOfLocalDay } from "../lib/time";
 
 export const HANDOFF_PAGE_SIZE = 25;
 
+/** USD per million tokens. Cache reads/writes are counted as regular input (an estimate). */
+export interface LlmPrices {
+  inputPerMTok: number;
+  outputPerMTok: number;
+}
+
+const round4 = (n: number) => Math.round(n * 10_000) / 10_000;
+
 // Every query below filters by businessId: the session's business is the only scope.
 
 export function toBusinessResponse(business: Business, widgetBaseUrl: string): BusinessResponse {
@@ -237,6 +245,7 @@ export async function getMetrics(
   from: string | undefined,
   to: string | undefined,
   now: Date,
+  prices: LlmPrices,
 ): Promise<MetricsResponse> {
   const { fromDay, toDay, start, end } = range(business, from, to, now);
   const businessId = business.id;
@@ -265,6 +274,8 @@ export async function getMetrics(
     llmCalls,
     pendingCount,
     recent,
+    llmOk,
+    failuresByKind,
   ] = await Promise.all([
     db.conversation.count({ where: conversationsInRange }),
     db.conversation.count({ where: { ...conversationsInRange, handoffs: { none: {} } } }),
@@ -285,7 +296,29 @@ export async function getMetrics(
       take: 5,
       include: summaryInclude,
     }),
+    db.message.aggregate({
+      where: { ...messagesInRange, role: "ASSISTANT", engine: "llm" },
+      _count: { _all: true },
+      _avg: { latencyMs: true },
+    }),
+    db.message.groupBy({
+      by: ["llmError"],
+      where: { ...messagesInRange, role: "ASSISTANT", llmError: { not: null } },
+      _count: { _all: true },
+    }),
   ]);
+
+  const failures = { timeout: 0, api_error: 0, invalid_output: 0 };
+  for (const row of failuresByKind) {
+    if (row.llmError && row.llmError in failures) {
+      failures[row.llmError as keyof typeof failures] = row._count._all;
+    }
+  }
+  const failed = failures.timeout + failures.api_error + failures.invalid_output;
+  const inputTokens = tokens._sum.inputTokens ?? 0;
+  const outputTokens = tokens._sum.outputTokens ?? 0;
+  const cost =
+    (inputTokens * prices.inputPerMTok + outputTokens * prices.outputPerMTok) / 1_000_000;
 
   const handoffsByReason = Object.fromEntries(
     HandoffReasonSchema.options.map((r) => [r, 0]),
@@ -302,9 +335,16 @@ export async function getMetrics(
     resolutionRate: conversations ? resolved / conversations : 0,
     handoffsByReason,
     tokens: {
-      input: tokens._sum.inputTokens ?? 0,
-      output: tokens._sum.outputTokens ?? 0,
+      input: inputTokens,
+      output: outputTokens,
       llmCalls,
+      estimatedCostUsd: round4(cost),
+      costPerConversationUsd: conversations ? round4(cost / conversations) : 0,
+    },
+    llm: {
+      failures,
+      failureRate: llmOk._count._all + failed ? failed / (llmOk._count._all + failed) : 0,
+      avgLatencyMs: llmOk._avg.latencyMs === null ? null : Math.round(llmOk._avg.latencyMs),
     },
     pendingCount,
     recentPending: recent.map(toSummary),

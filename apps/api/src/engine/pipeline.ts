@@ -21,7 +21,7 @@ import {
   waUrl,
   type HandoffTexts,
 } from "./handoff";
-import { callLlm, type LlmConfig, type LlmTransport } from "./llm";
+import { callLlm, type LlmConfig, type LlmFailure, type LlmTransport } from "./llm";
 import { preRules } from "./pre-rules";
 import { buildHistory, buildSystemPrompt, HISTORY_LIMIT } from "./prompt";
 import { checkRateLimits, type IpRateLimiter } from "./rate-limits";
@@ -61,6 +61,7 @@ interface AssistantStats {
   inputTokens?: number | null;
   outputTokens?: number | null;
   latencyMs?: number | null;
+  llmError?: LlmFailure;
 }
 
 /** POST /v1/chat pipeline (docs/SPEC.md §5). Always answers; failures become handoffs. */
@@ -161,6 +162,7 @@ export async function handleChat(
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,
         latencyMs: result.latencyMs,
+        llmError: result.failure,
       },
       () => REPLIES.technicalFailure,
     );
@@ -265,6 +267,7 @@ async function saveAssistantMessage(
       inputTokens: stats.inputTokens ?? null,
       outputTokens: stats.outputTokens ?? null,
       latencyMs: stats.latencyMs ?? null,
+      llmError: stats.llmError ?? null,
     },
   });
 }
