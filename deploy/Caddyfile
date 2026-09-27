@@ -1,0 +1,50 @@
+# SITE_ADDRESS: the domain (puente.tudominio.com → automatic HTTPS), or ":80" for local tests.
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+
+	# API (panel + widget calls). The API sets its own no-store and CORS headers.
+	handle /v1/* {
+		reverse_proxy api:3000
+	}
+	handle /health {
+		reverse_proxy api:3000
+	}
+
+	# Widget: /widget/v1.js is what merchants embed (1 h cache, served stale up to a day while
+	# it refreshes); /widget/v1.<hash>.js is an immutable pinned copy.
+	handle_path /widget/* {
+		root * /srv/widget
+		@pinned path_regexp ^/v1\.[0-9a-f]{8}\.js$
+		header @pinned Cache-Control "public, max-age=31536000, immutable"
+		@stable path /v1.js
+		header @stable Cache-Control "public, max-age=3600, stale-while-revalidate=86400"
+		header Cross-Origin-Resource-Policy "cross-origin"
+		file_server
+	}
+
+	# Test page for staging: /demo/?bundle=1&src=/widget/v1.js&key=pk_...
+	handle_path /demo/* {
+		root * /srv/demo
+		file_server
+	}
+
+	# Panel (single-page app).
+	handle {
+		root * /srv/panel
+		header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		header X-Frame-Options "DENY"
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		@html not path /assets/*
+		header @html Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

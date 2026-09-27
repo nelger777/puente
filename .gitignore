@@ -7,3 +7,4 @@ apps/api/src/generated/
 test-results/
 playwright-report/
 .DS_Store
+deploy/backups/

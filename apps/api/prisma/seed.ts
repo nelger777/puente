@@ -8,16 +8,21 @@ import { hashPassword } from "../src/lib/password";
 loadRootEnv();
 
 const DEV_ADMIN_PASSWORD = "puente-admin-dev";
-const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@opticamirador.com";
-const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? DEV_ADMIN_PASSWORD;
-if (process.env.NODE_ENV === "production" && adminPassword === DEV_ADMIN_PASSWORD) {
-  throw new Error("Set SEED_ADMIN_PASSWORD to seed a production database");
+// docker compose passes unset variables as empty strings: treat "" as missing.
+const envOr = (name: string, fallback: string) => process.env[name]?.trim() || fallback;
+const adminEmail = envOr("SEED_ADMIN_EMAIL", "admin@opticamirador.com").toLowerCase();
+const adminPassword = envOr("SEED_ADMIN_PASSWORD", DEV_ADMIN_PASSWORD);
+if (
+  process.env.NODE_ENV === "production" &&
+  (adminPassword === DEV_ADMIN_PASSWORD || adminPassword.length < 12)
+) {
+  throw new Error("Set SEED_ADMIN_PASSWORD (12+ characters) to seed a production database");
 }
 
 // Fixed key outside production so the widget demo works without copying keys around.
 const isProduction = process.env.NODE_ENV === "production";
 const publicKey =
-  process.env.SEED_PUBLIC_KEY ?? (isProduction ? newPublicKey() : "pk_demo_opticamirador");
+  process.env.SEED_PUBLIC_KEY?.trim() || (isProduction ? newPublicKey() : "pk_demo_opticamirador");
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error("DATABASE_URL is required");

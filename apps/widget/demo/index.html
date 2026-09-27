@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
     <title>Óptica Mirador · Sitio de prueba</title>
     <style>
       body {
@@ -37,7 +38,8 @@
       <p>
         Página local para probar el widget. Parámetros opcionales: <code>?key=</code> (clave del
         negocio), <code>?api=</code> (URL de la API) y <code>?bundle=1</code> (usar
-        <code>dist/v1.js</code> en lugar del código fuente).
+        <code>dist/v1.js</code> en lugar del código fuente; con <code>&amp;src=</code> se elige otra
+        URL del bundle, p. ej. <code>/widget/v1.js</code> en staging).
       </p>
     </main>
     <script>
@@ -46,7 +48,8 @@
         var params = new URLSearchParams(location.search);
         var script = document.createElement("script");
         if (params.get("bundle")) {
-          script.src = "/dist/v1.js";
+          // Staging serves the bundle at /widget/v1.js: use ?src=/widget/v1.js there.
+          script.src = params.get("src") || "/dist/v1.js";
           script.async = true;
         } else {
           script.type = "module";

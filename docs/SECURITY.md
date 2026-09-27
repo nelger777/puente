@@ -50,8 +50,15 @@ Cierre del Hito 5. Cada punto indica dónde está implementado y qué prueba lo 
 | Cuerpos grandes solo donde hace falta (16 KB global; 1 MB para la base de conocimiento) | `app.ts`, `routes/admin.ts`                                                                                                                           | `hardening.test.ts`          |
 | Dependencias sin vulnerabilidades altas                                                 | `pnpm audit --prod --audit-level high` en el CI; `overrides` en `pnpm-workspace.yaml` para `mysql2` y `deepmerge-ts` (dependencias del CLI de Prisma) | CI                           |
 
-## Pendiente para el Hito 6 (despliegue)
+## Despliegue (Hito 6)
 
-- HTTPS obligatorio y HSTS en el proxy inverso.
-- Encabezados de seguridad del panel servido (CSP, `X-Frame-Options: DENY`).
-- Backups cifrados de PostgreSQL y rotación de `SESSION_SECRET` / `ANTHROPIC_API_KEY`.
+| Requisito                                              | Implementación                                         | Verificado por                       |
+| ------------------------------------------------------ | ------------------------------------------------------ | ------------------------------------ |
+| HTTPS obligatorio y HSTS                               | Caddy con Let's Encrypt (`deploy/Caddyfile`)           | `deploy/smoke.sh` en staging         |
+| Panel con CSP estricta y sin iframes                   | `deploy/Caddyfile`                                     | `deploy/smoke.sh` (CI, job `docker`) |
+| Base de datos y API sin puertos públicos; API sin root | `deploy/compose.yml`, `Dockerfile` (usuario `node`)    | Revisión de configuración            |
+| Respaldos diarios con retención de 14 días             | `deploy/backup.sh` + cron                              | `docs/DEPLOY.md` §7                  |
+| Secretos fuera del repositorio                         | `deploy/.env` (600, en `.gitignore` y `.dockerignore`) | Revisión de configuración            |
+
+Pendiente de quien opera el servidor: copiar los respaldos fuera del VPS y rotar
+`SESSION_SECRET` / `ANTHROPIC_API_KEY` ante cualquier sospecha de filtración.

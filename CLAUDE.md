@@ -32,7 +32,8 @@ apps/
   panel/      src/{pages,components,api}
 packages/
   shared/     src/{schemas,types}
-docs/{SPEC.md,DECISIONS.md}
+docs/{SPEC.md,DECISIONS.md,SECURITY.md,DEPLOY.md}
+deploy/     compose.yml, Caddyfile, scripts de despliegue
 docker-compose.yml
 ```
 
@@ -65,4 +66,5 @@ docker-compose.yml
 - Panel: `pnpm dev` y abrir http://localhost:5174 (usuario de la semilla `admin@opticamirador.com` / `puente-admin-dev`).
 - `pnpm db:migrate` / `pnpm db:seed` — migraciones y datos de ejemplo.
 - `pnpm lint` / `pnpm typecheck` / `pnpm format`.
+- Producción: `docs/DEPLOY.md` (`deploy/compose.yml`, `sh deploy/deploy.sh`, `sh deploy/smoke.sh`).
 - Las pruebas de la API usan la base `puente_test` (`TEST_DATABASE_URL`) y aplican las migraciones solas.

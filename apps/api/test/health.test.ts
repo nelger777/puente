@@ -17,6 +17,13 @@ describe("GET /health", () => {
     await app.close();
   });
 
+  it("reports readiness when the database answers", async () => {
+    const { app } = makeApp(db);
+    const res = await app.inject({ method: "GET", url: "/ready" });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ status: "ready" });
+  });
+
   it("answers unknown routes with the error format", async () => {
     const { app } = makeApp(db);
     const res = await app.inject({ method: "GET", url: "/nope" });

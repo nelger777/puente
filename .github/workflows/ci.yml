@@ -89,3 +89,35 @@ jobs:
           name: playwright-report
           path: apps/*/playwright-report
           retention-days: 7
+
+  # Production images and stack (deploy/compose.yml) with the smoke test used on staging.
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test configuration (plain HTTP on localhost:8090)
+        run: |
+          cat > deploy/.env <<'ENV'
+          SITE_ADDRESS=:80
+          PUBLIC_URL=http://localhost:8090
+          HTTP_PORT=8090
+          HTTPS_PORT=8443
+          POSTGRES_PASSWORD=ci-db-password
+          ANTHROPIC_API_KEY=sk-ant-not-a-real-key
+          SESSION_SECRET=ci-session-secret-long-enough-0123456789
+          SMTP_URL=smtp://localhost:1025
+          MAIL_FROM=Puente <ci@puente.test>
+          SEED_ADMIN_EMAIL=admin@staging.test
+          SEED_ADMIN_PASSWORD=staging-clave-segura
+          ENV
+      - run: docker compose -f deploy/compose.yml up -d --build --wait
+      - name: Seed a test business
+        run: docker compose -f deploy/compose.yml exec -T api node dist/seed.js 2>&1 | tee seed.log
+      - name: Smoke test
+        run: |
+          KEY=$(sed -n 's/.*publicKey: \(pk_[A-Za-z0-9_-]*\).*/\1/p' seed.log)
+          sh deploy/smoke.sh http://localhost:8090 "$KEY" https://opticamirador.com admin@staging.test staging-clave-segura
+      - name: Logs on failure
+        if: failure()
+        run: docker compose -f deploy/compose.yml logs --tail 150

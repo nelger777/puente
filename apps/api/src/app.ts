@@ -95,6 +95,17 @@ export function buildApp(deps: AppDeps, options: FastifyServerOptions = {}) {
   );
 
   app.get("/health", () => ({ status: "ok" }));
+  // Readiness for the container healthcheck: the process is up and the database answers.
+  app.get("/ready", async (_request, reply) => {
+    try {
+      await deps.db.$queryRaw`SELECT 1`;
+      return { status: "ready" };
+    } catch {
+      return reply
+        .code(503)
+        .send({ error: { code: "internal_error", message: "Database unavailable" } });
+    }
+  });
 
   const { env } = deps;
   const engine: EngineDeps = {

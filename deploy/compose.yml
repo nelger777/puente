@@ -1,0 +1,88 @@
+# Puente on one server: PostgreSQL + API + Caddy (HTTPS). See docs/DEPLOY.md.
+#   cd deploy && cp .env.example .env   (fill it in)
+#   docker compose up -d --build
+name: puente-prod
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: puente
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/.env}
+      POSTGRES_DB: puente
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U puente -d puente"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    logging: *logging
+
+  api:
+    build:
+      context: ..
+      target: api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://puente:${POSTGRES_PASSWORD}@db:5432/puente
+      PUBLIC_API_URL: ${PUBLIC_URL:?Set PUBLIC_URL in deploy/.env}
+      PANEL_URL: ${PUBLIC_URL}
+      WIDGET_CDN_URL: ${PUBLIC_URL}/widget
+      TRUST_PROXY: "true"
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?Set ANTHROPIC_API_KEY in deploy/.env}
+      LLM_MODEL: ${LLM_MODEL:-claude-haiku-4-5-20251001}
+      LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-15000}
+      LLM_PRICE_INPUT_PER_MTOK: ${LLM_PRICE_INPUT_PER_MTOK:-1}
+      LLM_PRICE_OUTPUT_PER_MTOK: ${LLM_PRICE_OUTPUT_PER_MTOK:-5}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in deploy/.env}
+      SMTP_URL: ${SMTP_URL:?Set SMTP_URL in deploy/.env}
+      MAIL_FROM: ${MAIL_FROM:?Set MAIL_FROM in deploy/.env}
+      ALERT_EMAIL: ${ALERT_EMAIL:-}
+      RETENTION_DAYS: ${RETENTION_DAYS:-90}
+      # Only used by `node dist/seed.js` (first staging business).
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
+    logging: *logging
+
+  web:
+    build:
+      context: ..
+      target: web
+      args:
+        PUBLIC_URL: ${PUBLIC_URL}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?Set SITE_ADDRESS in deploy/.env}
+    healthcheck:
+      # Caddy admin API answers only once the configuration loaded.
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTPS_PORT:-443}:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    logging: *logging
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

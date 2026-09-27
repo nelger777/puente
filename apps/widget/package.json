@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 5173",
-    "build": "vite build && node scripts/check-size.mjs",
+    "build": "vite build && node scripts/postbuild.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "test:e2e": "playwright test"
