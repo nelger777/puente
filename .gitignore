@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+.env
+*.log
+apps/api/src/generated/
+apps/widget/test-results/
+apps/widget/playwright-report/
+.DS_Store
