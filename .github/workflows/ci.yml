@@ -27,10 +27,17 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
+      mailpit:
+        image: axllent/mailpit:latest
+        ports:
+          - 1025:1025
+          - 8025:8025
     env:
       # prisma generate needs a URL; tests use TEST_DATABASE_URL.
       DATABASE_URL: postgresql://puente:puente@localhost:5432/puente
       TEST_DATABASE_URL: postgresql://puente:puente@localhost:5432/puente_test
+      SMTP_URL: smtp://localhost:1025
+      MAILPIT_URL: http://localhost:8025
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
