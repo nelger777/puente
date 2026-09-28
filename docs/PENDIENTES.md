@@ -21,14 +21,17 @@ Estado al 2026-09-28: **staging en línea** en https://puente.firefly.com.py (VP
 ## IA (hoy con clave provisoria `sk-ant-pendiente`: todo se deriva con "IA no disponible")
 
 - [ ] Cargar crédito en https://console.anthropic.com (Settings → Billing, ~5 USD) y poner un **límite de gasto mensual** (Settings → Limits, p. ej. 10 USD).
-- [ ] Crear la clave (Settings → API Keys → Create Key, nombre `puente-vps`) y cargarla sin dejarla a la vista:
-      `sh
-    cd /opt/puente/deploy
-    read -rsp "Pega la clave de Anthropic y presiona Enter: " K; echo
-    sed -i "s|^ANTHROPIC_API_KEY=.*|ANTHROPIC_API_KEY=$K|" .env; unset K
-    docker compose up -d api
-    `
+- [ ] Crear la clave (Settings → API Keys → Create Key, nombre `puente-vps`) y cargarla sin dejarla a la vista (comandos abajo).
 - [ ] **Primera prueba con la IA real** (nunca se probó contra la API de Anthropic): en _Probar_, hacer preguntas de la base y fuera de ella; revisar _Resumen → Uso de la IA_ (costo, fallas). Si todas fallan como "respuesta inválida" o "error del servicio", revisar `docker compose logs --tail 100 api`.
+
+Cargar la clave real:
+
+```sh
+cd /opt/puente/deploy
+read -rsp "Pega la clave de Anthropic y presiona Enter: " K; echo
+sed -i "s|^ANTHROPIC_API_KEY=.*|ANTHROPIC_API_KEY=$K|" .env; unset K
+docker compose up -d api
+```
 
 ## Correo (hoy `smtp://localhost:25`: los avisos no salen; las derivaciones sí se ven en el panel)
 
