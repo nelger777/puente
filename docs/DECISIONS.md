@@ -85,3 +85,12 @@ Complementa `docs/SPEC.md`. Cada decisión resuelve un hueco o una contradicció
 | Panel                 | CSP estricta (`script-src 'self'`; estilos inline permitidos por el Shadow DOM del widget y los estilos de React), `X-Frame-Options: DENY`, assets con hash cacheados un año, `index.html` sin caché.                         |
 | Semilla en producción | Exige `SEED_ADMIN_PASSWORD` de 12+ caracteres; variables vacías cuentan como ausentes; clave pública aleatoria.                                                                                                               |
 | Verificación          | `deploy/smoke.sh` (solo curl) contra staging/producción; el CI levanta el stack de producción en HTTP y corre la misma prueba.                                                                                                |
+
+### Ajuste para servidor compartido (2026-09-28)
+
+| Tema        | Decisión                                                                                                                                                                                                                                            |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Imágenes    | GitHub Actions construye y publica `ghcr.io/nelger777/puente-{api,web}` (`latest` + SHA) tras pasar todas las pruebas; el VPS solo hace `pull` (no compila: 1 CPU / RAM compartida). `deploy/compose.build.yml` para construir en local o en el CI. |
+| Widget      | Llama al mismo origen desde el que se sirve (`new URL(script.src).origin`): imágenes sin dominio fijo. `data-api` sigue teniendo prioridad; en desarrollo usa `PUBLIC_API_URL`.                                                                     |
+| Red         | En servidor compartido, `web` escucha solo en `127.0.0.1:8090` y el proxy existente del servidor termina HTTPS; Caddy de Puente confía en proxies de rangos privados para conservar la IP del cliente.                                              |
+| Convivencia | Límites de memoria (db 256 MB, api 384 MB, web 96 MB); `deploy.sh` no limpia imágenes ajenas ni toca firewall o paquetes. Versión fijable con `PUENTE_VERSION`.                                                                                     |

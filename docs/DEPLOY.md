@@ -1,81 +1,93 @@
 # Despliegue de Puente
 
-Todo corre en **un solo servidor** con Docker:
+Puente corre con Docker en **un solo servidor**, en tres contenedores:
 
-| Servicio             | Qué hace                                                                                                  | Expuesto              |
-| -------------------- | --------------------------------------------------------------------------------------------------------- | --------------------- |
-| `web` (Caddy)        | HTTPS automático (Let's Encrypt); sirve el panel en `/`, el widget en `/widget/` y reenvía `/v1` a la API | 80 y 443              |
-| `api` (Node 24)      | API y motor del asistente; aplica las migraciones al arrancar; tareas de retención y alertas              | no (solo red interna) |
-| `db` (PostgreSQL 17) | Datos                                                                                                     | no (solo red interna) |
+| Servicio             | Qué hace                                                                           | Expuesto                                                                 |
+| -------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `web` (Caddy)        | Sirve el panel en `/`, el widget en `/widget/` y reenvía `/v1` a la API            | Solo `127.0.0.1:8090` (servidor compartido) o 80/443 (servidor dedicado) |
+| `api` (Node 24)      | API y motor del asistente; aplica las migraciones al arrancar; retención y alertas | No                                                                       |
+| `db` (PostgreSQL 17) | Datos de Puente (base propia)                                                      | No                                                                       |
 
-Los comercios instalan el asistente con una línea en su sitio:
+Las imágenes las construye y publica **GitHub Actions** en `ghcr.io/nelger777/puente-api` y
+`puente-web` cada vez que `main` pasa todas las pruebas. **El servidor no compila nada**: solo
+descarga imágenes. Uso de memoria medido: ~140 MB (límites: 256 + 384 + 96 MB).
+
+Los comercios instalan el asistente con una línea (el panel la muestra en **Instalación**):
 
 ```html
 <script src="https://puente.tudominio.com/widget/v1.js" data-key="pk_..." async></script>
 ```
 
-El panel la muestra ya armada en **Instalación**.
+---
 
-## 1. Preparar el servidor (una sola vez)
+## A. Servidor compartido con otros proyectos (Caddy del sistema en 80/443)
 
-Requisitos: VPS con Ubuntu 24.04, 2 GB de RAM, 20 GB de disco (Hetzner CX22, DigitalOcean
-Basic 2 GB o similar).
+Es el caso de un VPS donde ya hay un Caddy (u otro proxy) atendiendo otros sitios. Puente **no
+toca** los puertos 80/443, el firewall ni los paquetes del sistema: escucha en `127.0.0.1:8090` y
+el Caddy existente le reenvía el subdominio (y emite su certificado, como para los demás sitios).
 
-```sh
-# Como root en el servidor
-apt update && apt upgrade -y
-curl -fsSL https://get.docker.com | sh            # Docker + docker compose
-adduser --disabled-password --gecos "" puente && usermod -aG docker puente
-
-# Firewall: SSH y web
-ufw allow OpenSSH && ufw allow 80/tcp && ufw allow 443/tcp && ufw allow 443/udp && ufw --force enable
-
-# Código
-mkdir -p /opt/puente && chown puente:puente /opt/puente
-su - puente -c "git clone https://github.com/nelger777/puente.git /opt/puente"
-```
-
-> Si el repositorio es privado, crea una _deploy key_ de solo lectura en GitHub
-> (Settings → Deploy keys) con la clave pública de `/home/puente/.ssh/id_ed25519.pub`
-> y clona con `git@github.com:nelger777/puente.git`.
-
-## 2. DNS
-
-En el proveedor de tu dominio crea un registro **A**: `puente` → IP del servidor (y **AAAA** si
-tiene IPv6). Comprueba con `dig +short puente.tudominio.com` antes de seguir: Caddy necesita
-que el dominio ya apunte al servidor para emitir el certificado.
-
-## 3. Configuración
+### A1. Código y configuración
 
 ```sh
-su - puente
-cd /opt/puente/deploy
-cp .env.example .env
-chmod 600 .env
+mkdir -p /opt/puente && cd /opt/puente
+git clone https://github.com/nelger777/puente.git .
+cd deploy
+cp .env.example .env && chmod 600 .env
 nano .env
 ```
 
-| Variable                                  | Valor                                                                                                                           |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `SITE_ADDRESS`                            | `puente.tudominio.com`                                                                                                          |
-| `PUBLIC_URL`                              | `https://puente.tudominio.com`                                                                                                  |
-| `POSTGRES_PASSWORD`, `SESSION_SECRET`     | `openssl rand -base64 48` (uno distinto para cada una)                                                                          |
-| `ANTHROPIC_API_KEY`                       | Clave de la consola de Anthropic                                                                                                |
-| `SMTP_URL`, `MAIL_FROM`                   | Proveedor SMTP (Brevo, Amazon SES, Resend, Mailgun). El remitente debe ser de un dominio verificado en ese proveedor (SPF/DKIM) |
-| `ALERT_EMAIL`                             | Tu correo: alerta si la IA falla más del 5 % en una hora                                                                        |
-| `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | Admin del primer negocio (contraseña de 12+ caracteres)                                                                         |
+| Variable                                  | Valor                                                                                                                                                                         |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `PUBLIC_URL`                              | `https://puente.tudominio.com`                                                                                                                                                |
+| `SITE_ADDRESS`, `HTTP_BIND`, `HTTPS_BIND` | Dejar como en el ejemplo (`:80`, `127.0.0.1:8090`, `127.0.0.1:8453`). Si 8090 estuviera ocupado, usa otro puerto libre (`ss -tln`) y cámbialo también en el Caddy del sistema |
+| `POSTGRES_PASSWORD`, `SESSION_SECRET`     | `openssl rand -base64 48` (uno distinto para cada una)                                                                                                                        |
+| `ANTHROPIC_API_KEY`                       | Clave de la consola de Anthropic                                                                                                                                              |
+| `SMTP_URL`, `MAIL_FROM`                   | Proveedor SMTP (Brevo, Amazon SES, Resend, Mailgun); remitente de un dominio verificado                                                                                       |
+| `ALERT_EMAIL`                             | Tu correo: alerta si la IA falla más del 5 % en una hora                                                                                                                      |
+| `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | Admin del primer negocio (contraseña de 12+ caracteres)                                                                                                                       |
 
-## 4. Primer despliegue
+### A2. DNS
+
+Registro **A** `puente` → IP del servidor. Comprueba con `dig +short puente.tudominio.com`.
+
+### A3. Levantar Puente
 
 ```sh
-cd /opt/puente
-sh deploy/deploy.sh
+cd /opt/puente && sh deploy/deploy.sh
+curl -s http://127.0.0.1:8090/health     # {"status":"ok"}
 ```
 
-La primera vez tarda unos minutos (construye las imágenes). Al terminar, `https://puente.tudominio.com`
-muestra el login del panel.
+### A4. Publicarlo en el Caddy del sistema
 
-## 5. Staging: negocio de prueba
+Agrega este bloque al Caddyfile del sistema (normalmente `/etc/caddy/Caddyfile`), **sin tocar los
+bloques de los otros sitios**:
+
+```caddyfile
+puente.tudominio.com {
+	reverse_proxy 127.0.0.1:8090
+}
+```
+
+Valida y recarga (la recarga es en caliente: los otros sitios no se interrumpen):
+
+```sh
+cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.bak-$(date +%F)
+caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+systemctl reload caddy
+```
+
+Si `validate` da error, no recargues: restaura la copia (`cp /etc/caddy/Caddyfile.bak-... /etc/caddy/Caddyfile`).
+
+---
+
+## B. Servidor dedicado a Puente
+
+En `deploy/.env`: `SITE_ADDRESS=puente.tudominio.com`, `HTTP_BIND=80`, `HTTPS_BIND=443`. El Caddy
+de Puente obtiene el certificado solo. Abre 80/443 en el firewall y ejecuta `sh deploy/deploy.sh`.
+
+---
+
+## Negocio de prueba (staging)
 
 ```sh
 cd /opt/puente/deploy
@@ -85,11 +97,10 @@ docker compose exec api node dist/seed.js
 Crea "Óptica Mirador" con 5 preguntas y el admin de `SEED_ADMIN_EMAIL`, y muestra la **clave
 pública** (`pk_...`). Luego:
 
-1. Entra al panel con ese admin.
-2. **Configuración** → _Dominios autorizados_: agrega `puente.tudominio.com` (para la página de
-   prueba) y el dominio del sitio donde lo vas a probar. Cambia el WhatsApp y el correo de avisos
-   por los tuyos.
-3. **Probar**: conversa con el asistente (con tu clave de Anthropic ya responde la IA real).
+1. Entra a `https://puente.tudominio.com` con ese admin.
+2. **Configuración** → _Dominios autorizados_: agrega `puente.tudominio.com` (página de prueba) y
+   el dominio donde lo vas a instalar. Cambia WhatsApp y correo de avisos por los tuyos.
+3. **Probar**: conversa con el asistente (IA real).
 4. Página de prueba con el widget real:
    `https://puente.tudominio.com/demo/?bundle=1&src=/widget/v1.js&key=pk_...`
 5. Verificación automática (crea una derivación de prueba):
@@ -98,34 +109,36 @@ pública** (`pk_...`). Luego:
 sh deploy/smoke.sh https://puente.tudominio.com pk_... https://puente.tudominio.com admin@... 'contraseña'
 ```
 
-Borra después la derivación de prueba marcándola como atendida (o déjala: la retención la
-eliminará a los 90 días).
-
-## 6. Actualizar
+## Actualizar y volver atrás
 
 ```sh
 cd /opt/puente && sh deploy/deploy.sh
 ```
 
-Descarga la última versión, reconstruye, reinicia y espera a que la API esté sana. Las
-migraciones se aplican solas. Los comercios reciben el widget nuevo en menos de una hora
-(`/widget/v1.js` se cachea 1 hora).
+Descarga las imágenes nuevas, reinicia solo los contenedores de Puente y espera a que estén sanos.
+Las migraciones se aplican solas. El widget nuevo llega a los comercios en menos de una hora.
 
-**Volver a una versión anterior:** `sh deploy/deploy.sh <commit>` (ver `git log --oneline`).
-Si esa versión es anterior a una migración, restaura también el respaldo previo (sección 7).
+**Volver a una versión anterior:** en `deploy/.env` pon `PUENTE_VERSION=<sha>` (el SHA completo
+de un commit de `main`, `git log --format='%H %s'`) y ejecuta `sh deploy/deploy.sh`. Vuelve a
+`latest` para seguir recibiendo actualizaciones. Si la versión es anterior a una migración,
+restaura también el respaldo previo.
 
-## 7. Respaldos
+Limpiar imágenes viejas **de Puente** (nunca afecta a otros proyectos):
 
 ```sh
-crontab -e   # como usuario puente
+docker image ls 'ghcr.io/nelger777/puente-*'
+docker image rm <IMAGE ID de las que ya no se usan>
+```
+
+## Respaldos
+
+```sh
+crontab -e
 30 3 * * * cd /opt/puente && sh deploy/backup.sh >> deploy/backup.log 2>&1
 ```
 
-Guarda un volcado comprimido diario en `deploy/backups/` (14 días). **Copia los respaldos fuera
-del servidor** (por ejemplo, el almacenamiento de backups del proveedor o `rclone` a otro
-servicio).
-
-Restaurar (reemplaza todos los datos actuales por los del respaldo):
+Volcado diario comprimido en `deploy/backups/` (14 días). **Copia los respaldos fuera del
+servidor.** Restaurar (reemplaza los datos actuales):
 
 ```sh
 cd /opt/puente/deploy
@@ -135,23 +148,16 @@ gunzip -c backups/puente-AAAAMMDD-HHMMSS.sql.gz | docker compose exec -T db psql
 docker compose start api
 ```
 
-## 8. Operación diaria
+## Operación diaria
 
 | Tarea              | Comando (en `/opt/puente/deploy`)                 |
 | ------------------ | ------------------------------------------------- |
 | Estado             | `docker compose ps`                               |
 | Logs de la API     | `docker compose logs -f --tail 100 api`           |
-| Reiniciar          | `docker compose restart api`                      |
+| Memoria            | `docker stats --no-stream`                        |
+| Reiniciar la API   | `docker compose restart api`                      |
 | Retención manual   | `docker compose exec api node dist/retention.js`  |
 | Consola de la base | `docker compose exec db psql -U puente -d puente` |
 
 Los logs no contienen mensajes de clientes ni teléfonos. Las alertas de la IA llegan a
-`ALERT_EMAIL`.
-
-## 9. Seguridad del servidor
-
-- Acceso SSH solo con llave (`PasswordAuthentication no` en `/etc/ssh/sshd_config`).
-- Actualizaciones automáticas de seguridad: `apt install unattended-upgrades`.
-- `deploy/.env` con permisos `600`; nunca lo subas al repositorio.
-- Si cambias `SESSION_SECRET`, todas las sesiones del panel se cierran (útil ante una filtración).
-- Checklist completo: `docs/SECURITY.md`.
+`ALERT_EMAIL`. Checklist de seguridad: `docs/SECURITY.md`.

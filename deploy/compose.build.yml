@@ -1,0 +1,13 @@
+# Builds the images from this checkout instead of pulling them (CI, local tests):
+#   docker compose -f compose.yml -f compose.build.yml up -d --build
+services:
+  api:
+    image: puente-local-api
+    build:
+      context: ..
+      target: api
+  web:
+    image: puente-local-web
+    build:
+      context: ..
+      target: web

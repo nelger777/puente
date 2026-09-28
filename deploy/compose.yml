@@ -1,6 +1,8 @@
-# Puente on one server: PostgreSQL + API + Caddy (HTTPS). See docs/DEPLOY.md.
+# Puente on one server: PostgreSQL + API + Caddy. See docs/DEPLOY.md.
+# Images come prebuilt from GitHub Actions (ghcr.io); the server never compiles anything.
 #   cd deploy && cp .env.example .env   (fill it in)
-#   docker compose up -d --build
+#   docker compose pull && docker compose up -d
+# To build the images locally instead: add `-f compose.build.yml`.
 name: puente-prod
 
 x-logging: &logging
@@ -17,6 +19,8 @@ services:
       POSTGRES_USER: puente
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/.env}
       POSTGRES_DB: puente
+    # Sized for a small shared server; plenty for a pilot.
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "max_connections=40"]
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -24,17 +28,17 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    mem_limit: 256m
     logging: *logging
 
   api:
-    build:
-      context: ..
-      target: api
+    image: ${PUENTE_IMAGE:-ghcr.io/nelger777/puente}-api:${PUENTE_VERSION:-latest}
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     environment:
+      NODE_OPTIONS: --max-old-space-size=256
       DATABASE_URL: postgresql://puente:${POSTGRES_PASSWORD}@db:5432/puente
       PUBLIC_API_URL: ${PUBLIC_URL:?Set PUBLIC_URL in deploy/.env}
       PANEL_URL: ${PUBLIC_URL}
@@ -53,14 +57,11 @@ services:
       # Only used by `node dist/seed.js` (first staging business).
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
+    mem_limit: 384m
     logging: *logging
 
   web:
-    build:
-      context: ..
-      target: web
-      args:
-        PUBLIC_URL: ${PUBLIC_URL}
+    image: ${PUENTE_IMAGE:-ghcr.io/nelger777/puente}-web:${PUENTE_VERSION:-latest}
     restart: unless-stopped
     depends_on:
       api:
@@ -73,13 +74,15 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+    # Shared server (another proxy owns 80/443): HTTP_BIND=127.0.0.1:8090 and
+    # HTTPS_BIND=127.0.0.1:8453 (unused). Dedicated server: 80 and 443, Caddy does HTTPS.
     ports:
-      - "${HTTP_PORT:-80}:80"
-      - "${HTTPS_PORT:-443}:443"
-      - "${HTTPS_PORT:-443}:443/udp"
+      - "${HTTP_BIND:-80}:80"
+      - "${HTTPS_BIND:-443}:443"
     volumes:
       - caddy_data:/data
       - caddy_config:/config
+    mem_limit: 96m
     logging: *logging
 
 volumes:

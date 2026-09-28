@@ -10,15 +10,15 @@ FROM ${NODE_IMAGE} AS build
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH CI=true
 RUN corepack enable
 WORKDIR /repo
-# Public origin the widget bundle calls by default (https://puente.tudominio.com).
-ARG PUBLIC_URL=http://localhost
+# The images are domain-agnostic: the widget calls the origin it is served from, and the
+# API reads its URLs from the environment at runtime.
 # Only for "prisma generate" at install time; the real URL arrives at runtime.
 ENV DATABASE_URL=postgresql://build:build@localhost:5432/build
 
 COPY . .
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 RUN pnpm --filter @puente/api build \
- && PUBLIC_API_URL="$PUBLIC_URL" pnpm --filter @puente/widget build \
+ && pnpm --filter @puente/widget build \
  && pnpm --filter @puente/panel build
 # Self-contained API folder with production dependencies only.
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
@@ -27,6 +27,7 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 
 # ---------- api ----------
 FROM ${NODE_IMAGE} AS api
+LABEL org.opencontainers.image.source="https://github.com/nelger777/puente"
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3000
 WORKDIR /app
 COPY --from=build --chown=node:node /out/api ./
@@ -39,6 +40,7 @@ CMD ["sh", "-c", "node_modules/.bin/prisma migrate deploy && exec node --enable-
 
 # ---------- web ----------
 FROM caddy:2-alpine AS web
+LABEL org.opencontainers.image.source="https://github.com/nelger777/puente"
 COPY deploy/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /repo/apps/panel/dist /srv/panel
 COPY --from=build /repo/apps/widget/dist /srv/widget

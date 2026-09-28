@@ -1,4 +1,13 @@
-# SITE_ADDRESS: the domain (puente.tudominio.com → automatic HTTPS), or ":80" for local tests.
+{
+	servers {
+		# When another proxy on the server terminates HTTPS, keep the client IP it forwards
+		# (rate limits depend on it). Only private addresses are trusted.
+		trusted_proxies static private_ranges
+	}
+}
+
+# SITE_ADDRESS: the domain (puente.tudominio.com → automatic HTTPS) when Puente owns ports
+# 80/443, or ":80" behind the server's own proxy (shared VPS, docs/DEPLOY.md).
 {$SITE_ADDRESS} {
 	encode zstd gzip
 

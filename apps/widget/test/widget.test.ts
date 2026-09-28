@@ -65,6 +65,14 @@ describe("settings", () => {
     script.dataset.api = "https://api.example.com/";
     expect(readSettings(script)?.apiUrl).toBe("https://api.example.com");
   });
+
+  it("uses the origin that served the bundle in production", () => {
+    const script = document.createElement("script");
+    script.dataset.key = "pk_abc";
+    script.src = "https://puente.example.com/widget/v1.js";
+    expect(readSettings(script, false)?.apiUrl).toBe("https://puente.example.com");
+    expect(readSettings(script, true)?.apiUrl).toBe("http://localhost:3000");
+  });
 });
 
 describe("StateStore", () => {
