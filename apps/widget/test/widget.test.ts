@@ -239,6 +239,21 @@ describe("assistant picture", () => {
     expect(root.querySelector(".head .avatar")?.textContent).toBe("L");
   });
 
+  it("puts the picture on the launcher with a chat badge, and restores the icon if it fails", () => {
+    const { root } = mount(
+      {},
+      { ...CONFIG, avatarUrl: "https://puente.test/v1/widget/avatar/pk_x?v=1" },
+    );
+    const launcher = root.querySelector(".launcher");
+    const img = launcher?.querySelector<HTMLImageElement>(".launcher-img");
+    expect(img?.getAttribute("src")).toBe("https://puente.test/v1/widget/avatar/pk_x?v=1");
+    expect(launcher?.querySelector(".launcher-badge svg")).not.toBeNull();
+    expect(launcher?.getAttribute("aria-label")).toBe("Abrir el chat con Luz");
+    img?.dispatchEvent(new Event("error"));
+    expect(launcher?.querySelector(".launcher-img")).toBeNull();
+    expect(launcher?.querySelector(":scope > svg")).not.toBeNull();
+  });
+
   it("uses the initial when there is no picture", () => {
     const { root } = mount();
     expect(root.querySelector(".head .avatar img")).toBeNull();

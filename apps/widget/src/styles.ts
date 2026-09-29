@@ -31,7 +31,15 @@ button, input, textarea { font: inherit; color: inherit; }
   box-shadow: 0 10px 28px -8px rgba(10,20,30,.45);
   display: grid; place-items: center;
 }
-.launcher svg { width: 28px; height: 28px; }
+.launcher > svg { width: 28px; height: 28px; }
+.launcher.has-img { position: relative; padding: 0; background: #fff; border: 3px solid var(--brand); }
+.launcher-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+.launcher-badge {
+  position: absolute; right: -4px; bottom: -4px; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--brand); color: var(--on-brand); border: 2px solid #fff;
+  display: grid; place-items: center;
+}
+.launcher-badge svg { width: 13px; height: 13px; }
 
 .panel {
   position: absolute; right: 0; bottom: 72px;

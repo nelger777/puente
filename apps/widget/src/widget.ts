@@ -61,6 +61,7 @@ export class ChatWidget {
       onclick: () => this.setOpen(this.panel.hidden !== false),
     });
     this.launcher.innerHTML = CHAT_ICON; // static markup, no user data
+    this.decorateLauncher();
 
     this.list = h("div", {
       class: "messages",
@@ -282,6 +283,28 @@ export class ChatWidget {
     // Assistant replies may carry links (quote forms, claims); the customer's text stays plain.
     if (item.kind === "bot") return h("div", { class: "msg bot" }, ...linkify(item.text));
     return h("div", { class: `msg ${item.kind}` }, item.text);
+  }
+
+  /**
+   * With a picture, the launcher shows it plus a small chat badge so it still reads as a chat;
+   * if the picture fails to load, the plain chat icon comes back.
+   */
+  private decorateLauncher(): void {
+    const url = this.config.avatarUrl;
+    if (!url || !/^https?:\/\//.test(url)) return;
+    const img = h("img", { class: "launcher-img", src: url, alt: "", decoding: "async" });
+    const badge = h("span", { class: "launcher-badge", "aria-hidden": "true" });
+    badge.innerHTML = CHAT_ICON; // static markup, no user data
+    img.addEventListener(
+      "error",
+      () => {
+        this.launcher.classList.remove("has-img");
+        this.launcher.innerHTML = CHAT_ICON;
+      },
+      { once: true },
+    );
+    this.launcher.classList.add("has-img");
+    this.launcher.replaceChildren(img, badge);
   }
 
   /** The assistant picture when there is one (https only), otherwise its initial. */
