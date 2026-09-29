@@ -8,10 +8,12 @@ import { IpRateLimiter } from "./engine/rate-limits";
 import { BackgroundTasks } from "./lib/background";
 import type { Env } from "./lib/env";
 import { ApiError } from "./lib/errors";
+import { SecretBox } from "./lib/secrets";
 import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
 import { publicRoutes } from "./routes/public";
 import type { Mailer } from "./services/mailer";
+import { createLlmRouter } from "./services/llm-router";
 import { Notifier } from "./services/notifications";
 
 declare module "fastify" {
@@ -31,6 +33,8 @@ export type AppEnv = Pick<
   | "SESSION_SECRET"
   | "LLM_PRICE_INPUT_PER_MTOK"
   | "LLM_PRICE_OUTPUT_PER_MTOK"
+  | "GEMINI_MODEL"
+  | "SECRETS_KEY"
 >;
 
 export interface AppDeps {
@@ -40,6 +44,9 @@ export interface AppDeps {
   mailer: Mailer;
   now?: () => Date;
   limiter?: IpRateLimiter;
+  /** Tests replace the per-business transports (never a real provider in CI). */
+  makeClaude?: (apiKey: string) => LlmTransport;
+  makeGemini?: (apiKey: string) => LlmTransport;
 }
 
 export function buildApp(deps: AppDeps, options: FastifyServerOptions = {}) {
@@ -108,10 +115,19 @@ export function buildApp(deps: AppDeps, options: FastifyServerOptions = {}) {
   });
 
   const { env } = deps;
+  const secrets = env.SECRETS_KEY ? new SecretBox(env.SECRETS_KEY) : null;
+  const llmFor = createLlmRouter({
+    defaultTransport: deps.llm,
+    claudeModel: env.LLM_MODEL,
+    geminiModel: env.GEMINI_MODEL,
+    secrets,
+    ...(deps.makeClaude ? { makeClaude: deps.makeClaude } : {}),
+    ...(deps.makeGemini ? { makeGemini: deps.makeGemini } : {}),
+  });
   const engine: EngineDeps = {
     db: deps.db,
-    llm: deps.llm,
-    llmConfig: { model: env.LLM_MODEL, timeoutMs: env.LLM_TIMEOUT_MS },
+    llmFor,
+    llmTimeoutMs: env.LLM_TIMEOUT_MS,
     limiter: deps.limiter ?? new IpRateLimiter(30, 60_000),
     notifier: new Notifier(deps.db, deps.mailer, background, env.PANEL_URL),
     internalOrigins: [env.PANEL_URL, env.PUBLIC_API_URL, env.WIDGET_CDN_URL].map(
@@ -149,6 +165,7 @@ export function buildApp(deps: AppDeps, options: FastifyServerOptions = {}) {
       panelOrigin,
       widgetBaseUrl: env.WIDGET_CDN_URL,
       publicApiUrl: env.PUBLIC_API_URL,
+      secrets,
       prices: {
         inputPerMTok: env.LLM_PRICE_INPUT_PER_MTOK,
         outputPerMTok: env.LLM_PRICE_OUTPUT_PER_MTOK,

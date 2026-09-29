@@ -10,6 +10,8 @@ import {
   HandoffPatchSchema,
   KnowledgePutSchema,
   KnowledgeResponseSchema,
+  LlmSettingsSchema,
+  LlmTestResponseSchema,
   MetricsQuerySchema,
   MetricsResponseSchema,
   PreviewChatRequestSchema,
@@ -32,6 +34,8 @@ import {
 } from "../services/admin";
 import { avatarUpdatedAt, avatarUrl, removeAvatar, saveAvatar } from "../services/avatar";
 import type { Business } from "../generated/prisma/client";
+import type { SecretBox } from "../lib/secrets";
+import { testLlm, updateLlmSettings } from "../services/llm-settings";
 
 export interface AdminRoutesDeps extends EngineDeps {
   sessionSecret: string;
@@ -39,6 +43,8 @@ export interface AdminRoutesDeps extends EngineDeps {
   widgetBaseUrl: string;
   publicApiUrl: string;
   prices: LlmPrices;
+  /** Seals the per-business AI keys; null when SECRETS_KEY is not set. */
+  secrets: SecretBox | null;
 }
 
 /** Panel API (docs/SPEC.md §4). Every handler scopes queries to the session's business. */
@@ -81,6 +87,18 @@ export function adminRoutes(deps: AdminRoutesDeps) {
       const { businessId } = authOf(request);
       await removeAvatar(db, businessId);
       return businessResponse(await getBusiness(db, businessId));
+    });
+
+    // The key is write-only: the response only says whether one is saved and its last 4 chars.
+    app.put("/business/llm", adminOnly, async (request) => {
+      const settings = parseInput(LlmSettingsSchema, request.body);
+      const business = await getBusiness(db, authOf(request).businessId);
+      return businessResponse(await updateLlmSettings(db, business, settings, deps.secrets));
+    });
+
+    app.post("/business/llm/test", adminOnly, async (request) => {
+      const business = await getBusiness(db, authOf(request).businessId);
+      return LlmTestResponseSchema.parse(await testLlm(business, deps.llmFor, deps.llmTimeoutMs));
     });
 
     app.get("/knowledge", adminOnly, async (request) =>

@@ -8,6 +8,7 @@ const BUSINESS: BusinessResponse = {
   publicKey: "pk_demo_opticamirador",
   widgetScriptUrl: "https://puente.test/widget/v1.js",
   avatarUrl: null,
+  llm: { provider: "default", hasKey: false, keyLast4: null },
   name: "Óptica Mirador",
   kind: "óptica",
   botName: "Luz",

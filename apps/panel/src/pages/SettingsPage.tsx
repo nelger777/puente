@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { api } from "../api/client";
 import { useIsAdmin } from "../auth";
 import { AvatarCard } from "../components/AvatarCard";
+import { LlmCard } from "../components/LlmCard";
 import { Card, ErrorNote, Loading, PageHeader } from "../components/ui";
 import { fromForm, toForm, type FormErrors, type SettingsForm } from "../lib/settings-form";
 import { useApi } from "../lib/use-api";
@@ -241,6 +242,9 @@ export function SettingsPage() {
           ) : null}
         </form>
       </Card>
+      {business.data && isAdmin ? (
+        <LlmCard business={business.data} onChange={business.setData} />
+      ) : null}
     </>
   );
 }

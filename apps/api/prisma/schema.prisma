@@ -17,6 +17,9 @@ model Business {
   kind               String
   botName            String
   voice              String          @default("tu") // "tu" | "vos": how the assistant addresses customers
+  llmProvider        String          @default("default") // "default" (server key) | "claude" | "gemini"
+  llmApiKeySealed    String? // own AI key, AES-256-GCM under SECRETS_KEY; never returned by the API
+  llmApiKeyLast4     String? // shown in the panel to recognize the saved key
   brandColor         String          @default("#1F5FBF")
   whatsappNumber     String // digits only, with country code
   notifyEmail        String

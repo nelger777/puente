@@ -1,6 +1,6 @@
-import type Anthropic from "@anthropic-ai/sdk";
 import type { Business, KnowledgeItem, Message } from "../generated/prisma/client";
 import { businessVoice } from "./business";
+import type { LlmMessage } from "./llm";
 
 export const HISTORY_LIMIT = 20;
 
@@ -42,13 +42,11 @@ Devuelve SOLO un objeto JSON con: reply, handoff, reason, summary, wa_message, q
 }
 
 /** Last messages as API turns; the API requires the first turn to be the user's. */
-export function buildHistory(
-  messages: Pick<Message, "role" | "content">[],
-): Anthropic.MessageParam[] {
+export function buildHistory(messages: Pick<Message, "role" | "content">[]): LlmMessage[] {
   const turns = messages
     .filter((m) => m.role === "USER" || m.role === "ASSISTANT")
     .slice(-HISTORY_LIMIT)
-    .map((m): Anthropic.MessageParam => ({
+    .map((m): LlmMessage => ({
       role: m.role === "USER" ? "user" : "assistant",
       content: m.content,
     }));

@@ -48,6 +48,12 @@ docker compose up -d api
 - [ ] Presupuesto de IA estimado para ~50 conversaciones web/día: 20–30 USD/mes.
 - [ ] Fase 2 (a definir con La Rural): bot en WhatsApp (API de WhatsApp Business) e integración con Joaju (CRM).
 
+## IA gratuita para demos (Gemini)
+
+- [ ] Crear la clave en https://aistudio.google.com → **Get API key** → **Create API key** (cuenta de Google personal o de la empresa).
+- [ ] Panel → Configuración → **Motor de IA** → "Gemini gratis (solo demo)" → pegar la clave → **Guardar motor** → **Probar conexión**.
+- [ ] Antes de atender clientes reales de La Rural, volver a "Predeterminado" (o Claude con clave propia): en el plan gratuito Google puede usar las conversaciones.
+
 ## Opcional más adelante
 
 - [ ] Enlace directo al chat (página alojada) para comercios que no pueden editar su HTML.

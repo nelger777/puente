@@ -33,13 +33,14 @@ Cierre del Hito 5. Cada punto indica dónde está implementado y qué prueba lo 
 
 ## IA
 
-| Requisito                                                               | Implementación                                                  | Verificado por                                             |
-| ----------------------------------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------------------- |
-| La clave de la IA vive solo en la API                                   | `engine/llm.ts`; widget y panel no la conocen                   | Revisión de código: ningún paquete de front importa el SDK |
-| Salida validada; timeout/errores → derivación `TECHNICAL_FAILURE` (200) | `engine/llm.ts`, `engine/llm-output.ts`, `engine/pipeline.ts`   | `chat.test.ts`, `hardening.test.ts` (tipo de falla)        |
-| Alerta si `TECHNICAL_FAILURE` > 5 % en una hora (mínimo 20 intentos)    | `services/llm-health.ts`, `jobs.ts` (cada 5 min, `ALERT_EMAIL`) | `hardening.test.ts` (alerta)                               |
-| El mensaje de WhatsApp no lleva enlaces internos                        | `engine/handoff.ts` `sanitizeWaMessage`                         | `chat.test.ts`, `engine-units.test.ts`                     |
-| Pruebas nunca llaman a la API real                                      | `FakeLlm` en `test/helpers.ts`, `test/e2e-server.ts`            | CI sin `ANTHROPIC_API_KEY`                                 |
+| Requisito                                                                                                                                                                          | Implementación                                                         | Verificado por                                             |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------- |
+| La clave de la IA vive solo en la API                                                                                                                                              | `engine/llm.ts`; widget y panel no la conocen                          | Revisión de código: ningún paquete de front importa el SDK |
+| Salida validada; timeout/errores → derivación `TECHNICAL_FAILURE` (200)                                                                                                            | `engine/llm.ts`, `engine/llm-output.ts`, `engine/pipeline.ts`          | `chat.test.ts`, `hardening.test.ts` (tipo de falla)        |
+| Alerta si `TECHNICAL_FAILURE` > 5 % en una hora (mínimo 20 intentos)                                                                                                               | `services/llm-health.ts`, `jobs.ts` (cada 5 min, `ALERT_EMAIL`)        | `hardening.test.ts` (alerta)                               |
+| El mensaje de WhatsApp no lleva enlaces internos                                                                                                                                   | `engine/handoff.ts` `sanitizeWaMessage`                                | `chat.test.ts`, `engine-units.test.ts`                     |
+| Clave de IA propia por negocio: solo escritura, cifrada AES-256-GCM con `SECRETS_KEY` (fuera de la base); la API solo devuelve si hay clave y sus 4 últimos caracteres; solo ADMIN | `lib/secrets.ts`, `services/llm-settings.ts`, `services/llm-router.ts` | `llm-engine.test.ts`                                       |
+| Pruebas nunca llaman a la API real                                                                                                                                                 | `FakeLlm` en `test/helpers.ts`, `test/e2e-server.ts`                   | CI sin `ANTHROPIC_API_KEY`                                 |
 
 ## Operación
 

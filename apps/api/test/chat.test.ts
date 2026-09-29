@@ -1,6 +1,6 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { ChatResponseSchema, type ChatResponse } from "@puente/shared";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { LlmTransportError } from "../src/engine/llm";
 import { IpRateLimiter } from "../src/engine/rate-limits";
 import { REPLIES, REPLIES_VOS } from "../src/engine/pipeline";
 import {
@@ -261,7 +261,7 @@ describe("POST /v1/chat — handoff reasons", () => {
   it("TECHNICAL_FAILURE: truncated or refused output is not trusted", async () => {
     const business = await createBusiness(db);
     const { app } = makeApp(db, {
-      llm: new FakeLlm([{ text: JSON.stringify(answer("Hola").json), stopReason: "max_tokens" }]),
+      llm: new FakeLlm([{ text: JSON.stringify(answer("Hola").json), complete: false }]),
     });
     const res = body(await postChat(app, { key: business.publicKey, message: "¿Horario?" }));
     expect(res.handoff?.reason).toBe("TECHNICAL_FAILURE");
@@ -269,9 +269,9 @@ describe("POST /v1/chat — handoff reasons", () => {
 
   it("retries once on network errors and 5xx, never more", async () => {
     const business = await createBusiness(db);
-    const serverError = new Anthropic.InternalServerError(500, undefined, "boom", new Headers());
+    const serverError = new LlmTransportError("http 500", true);
     const llm = new FakeLlm([
-      { error: new Anthropic.APIConnectionError({ message: "socket hang up" }) },
+      { error: new LlmTransportError("network", true) },
       answer("Recuperado."),
       { error: serverError },
       { error: serverError },
@@ -287,9 +287,7 @@ describe("POST /v1/chat — handoff reasons", () => {
 
   it("does not retry client errors", async () => {
     const business = await createBusiness(db);
-    const llm = new FakeLlm([
-      { error: new Anthropic.BadRequestError(400, undefined, "bad", new Headers()) },
-    ]);
+    const llm = new FakeLlm([{ error: new LlmTransportError("http 400", false) }]);
     const { app } = makeApp(db, { llm });
     const res = body(await postChat(app, { key: business.publicKey, message: "¿Horario?" }));
     expect(res.handoff?.reason).toBe("TECHNICAL_FAILURE");

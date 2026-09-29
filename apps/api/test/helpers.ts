@@ -1,7 +1,6 @@
-import type Anthropic from "@anthropic-ai/sdk";
 import { buildApp, type AppDeps, type AppEnv } from "../src/app";
 import { createDb, type Db } from "../src/db/client";
-import type { LlmTransport } from "../src/engine/llm";
+import type { LlmReply, LlmRequest, LlmTransport } from "../src/engine/llm";
 import type { Business, Prisma } from "../src/generated/prisma/client";
 import { newId, newPublicKey } from "../src/lib/ids";
 import { hashPassword } from "../src/lib/password";
@@ -58,13 +57,13 @@ export async function createBusiness(
 
 type LlmStep =
   | { json: Record<string, unknown> }
-  | { text: string; stopReason?: Anthropic.StopReason }
+  | { text: string; complete?: boolean }
   | { error: Error }
   | "hang";
 
-/** Scripted stand-in for the Anthropic client: one step per call, records every request. */
+/** Scripted stand-in for an AI provider: one step per call, records every request. */
 export class FakeLlm implements LlmTransport {
-  readonly calls: Anthropic.MessageCreateParamsNonStreaming[] = [];
+  readonly calls: LlmRequest[] = [];
 
   constructor(private readonly steps: LlmStep[] = []) {}
 
@@ -73,11 +72,8 @@ export class FakeLlm implements LlmTransport {
     return this;
   }
 
-  send(
-    params: Anthropic.MessageCreateParamsNonStreaming,
-    options: { signal: AbortSignal },
-  ): Promise<Anthropic.Message> {
-    this.calls.push(params);
+  send(request: LlmRequest, options: { signal: AbortSignal }): Promise<LlmReply> {
+    this.calls.push(request);
     const step = this.steps.shift();
     if (!step) return Promise.reject(new Error("FakeLlm: no scripted response left"));
     if (step === "hang") {
@@ -87,27 +83,13 @@ export class FakeLlm implements LlmTransport {
     }
     if ("error" in step) return Promise.reject(step.error);
     const text = "json" in step ? JSON.stringify(step.json) : step.text;
-    const stopReason = "stopReason" in step ? (step.stopReason ?? "end_turn") : "end_turn";
-    return Promise.resolve(llmMessage(text, stopReason));
+    const complete = "complete" in step ? (step.complete ?? true) : true;
+    return Promise.resolve(llmReply(text, complete));
   }
 }
 
-export function llmMessage(text: string, stopReason: Anthropic.StopReason = "end_turn") {
-  return {
-    id: "msg_fake",
-    type: "message",
-    role: "assistant",
-    model: "fake",
-    content: [{ type: "text", text, citations: null }],
-    stop_reason: stopReason,
-    stop_sequence: null,
-    usage: {
-      input_tokens: 120,
-      output_tokens: 30,
-      cache_creation_input_tokens: 0,
-      cache_read_input_tokens: 0,
-    },
-  } as unknown as Anthropic.Message;
+export function llmReply(text: string, complete = true): LlmReply {
+  return { text, complete, inputTokens: 120, outputTokens: 30 };
 }
 
 export function answer(reply: string, quickReplies: string[] = []) {
@@ -155,6 +137,8 @@ export const TEST_ENV: AppEnv = {
   SESSION_SECRET: "test-session-secret-0123456789abcdef",
   LLM_PRICE_INPUT_PER_MTOK: 1,
   LLM_PRICE_OUTPUT_PER_MTOK: 5,
+  GEMINI_MODEL: "gemini-3.8-flash",
+  SECRETS_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
 };
 
 export function makeApp(db: Db, deps: Partial<AppDeps> = {}) {

@@ -74,8 +74,41 @@ export const BusinessResponseSchema = BusinessSettingsSchema.extend({
   /** Where the widget bundle is served, for the install snippet. */
   widgetScriptUrl: z.string(),
   avatarUrl: z.string().nullable(),
+  llm: z.lazy(() => LlmSummarySchema),
 });
 export type BusinessResponse = z.infer<typeof BusinessResponseSchema>;
+
+// ---------- AI engine per business ----------
+
+/** "default" = the server's key (Claude); "claude" / "gemini" = the business's own key. */
+export const LlmProviderSchema = z.enum(["default", "claude", "gemini"]);
+export type LlmProvider = z.infer<typeof LlmProviderSchema>;
+
+export const LlmSettingsSchema = z.object({
+  provider: LlmProviderSchema,
+  /** Write-only: sent once, stored sealed, never returned. Omit to keep the saved one. */
+  apiKey: z
+    .string()
+    .trim()
+    .min(20, "Clave incompleta")
+    .max(300)
+    .regex(/^[A-Za-z0-9._-]+$/, "La clave tiene caracteres inválidos")
+    .optional(),
+});
+export type LlmSettings = z.infer<typeof LlmSettingsSchema>;
+
+export const LlmSummarySchema = z.object({
+  provider: LlmProviderSchema,
+  hasKey: z.boolean(),
+  keyLast4: z.string().nullable(),
+});
+
+export const LlmTestResponseSchema = z.object({
+  ok: z.boolean(),
+  message: z.string(),
+  latencyMs: z.int().nullable(),
+});
+export type LlmTestResponse = z.infer<typeof LlmTestResponseSchema>;
 
 // ---------- Assistant picture ----------
 

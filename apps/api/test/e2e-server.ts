@@ -11,7 +11,7 @@ import {
   createBusiness,
   createUser,
   FakeMailer,
-  llmMessage,
+  llmReply,
   PASSWORD,
   resetDb,
   TEST_ENV,
@@ -40,7 +40,7 @@ await createUser(db, business.id, "ADMIN", E2E_ADMIN.email);
 const ruleLlm: LlmTransport = {
   send(params) {
     const last = params.messages.at(-1);
-    const text = typeof last?.content === "string" ? last.content.toLowerCase() : "";
+    const text = last?.content.toLowerCase() ?? "";
     const output = text.includes("precio")
       ? {
           reply: "No tengo esa información. Te conecto con una persona del equipo.",
@@ -67,7 +67,7 @@ const ruleLlm: LlmTransport = {
             wa_message: "",
             quick_replies: [],
           };
-    return Promise.resolve(llmMessage(JSON.stringify(output)));
+    return Promise.resolve(llmReply(JSON.stringify(output)));
   },
 };
 

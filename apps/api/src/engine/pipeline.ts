@@ -21,7 +21,8 @@ import {
   waUrl,
   type HandoffTexts,
 } from "./handoff";
-import { callLlm, type LlmConfig, type LlmFailure, type LlmTransport } from "./llm";
+import type { LlmRouter } from "../services/llm-router";
+import { callLlm, type LlmFailure } from "./llm";
 import { preRules } from "./pre-rules";
 import { buildHistory, buildSystemPrompt, HISTORY_LIMIT } from "./prompt";
 import { checkRateLimits, type IpRateLimiter } from "./rate-limits";
@@ -44,8 +45,9 @@ export const REPLIES_VOS = {
 
 export interface EngineDeps {
   db: Db;
-  llm: LlmTransport;
-  llmConfig: LlmConfig;
+  /** The engine (and key) of each business: its own, or the server default. */
+  llmFor: LlmRouter;
+  llmTimeoutMs: number;
   limiter: IpRateLimiter;
   notifier: Notifier;
   /** Our own app origins, never allowed inside the customer's WhatsApp text. */
@@ -150,15 +152,21 @@ export async function handleChat(
     orderBy: { position: "asc" },
     select: { question: true, answer: true },
   });
+  const route = deps.llmFor(business);
   const result = await callLlm(
-    deps.llm,
-    deps.llmConfig,
+    route.transport,
+    { model: route.model, timeoutMs: deps.llmTimeoutMs },
     buildSystemPrompt(business, knowledge),
     buildHistory(history),
   );
   if (!result.ok) {
     ctx.log.warn(
-      { conversationId: conversation.id, failure: result.failure, latencyMs: result.latencyMs },
+      {
+        conversationId: conversation.id,
+        provider: route.provider,
+        failure: result.failure,
+        latencyMs: result.latencyMs,
+      },
       "llm call failed, handing off",
     );
     return finishWithHandoff(

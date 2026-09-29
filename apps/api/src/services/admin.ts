@@ -17,6 +17,7 @@ import type { Business, Prisma } from "../generated/prisma/client";
 import { ApiError } from "../lib/errors";
 import { newId } from "../lib/ids";
 import { startOfLocalDay } from "../lib/time";
+import { businessProvider } from "./llm-router";
 
 export const HANDOFF_PAGE_SIZE = 25;
 
@@ -58,6 +59,11 @@ export function toBusinessResponse(
     maxMessagesPerConv: business.maxMessagesPerConv,
     dailyMessageCap: business.dailyMessageCap,
     active: business.active,
+    llm: {
+      provider: businessProvider(business),
+      hasKey: business.llmApiKeySealed !== null,
+      keyLast4: business.llmApiKeyLast4,
+    },
   };
 }
 
@@ -323,8 +329,11 @@ export async function getMetrics(
   const failed = failures.timeout + failures.api_error + failures.invalid_output;
   const inputTokens = tokens._sum.inputTokens ?? 0;
   const outputTokens = tokens._sum.outputTokens ?? 0;
-  const cost =
-    (inputTokens * prices.inputPerMTok + outputTokens * prices.outputPerMTok) / 1_000_000;
+  // Gemini on the free tier costs nothing (demo use); history is priced with the current engine.
+  const free = businessProvider(business) === "gemini";
+  const cost = free
+    ? 0
+    : (inputTokens * prices.inputPerMTok + outputTokens * prices.outputPerMTok) / 1_000_000;
 
   const handoffsByReason = Object.fromEntries(
     HandoffReasonSchema.options.map((r) => [r, 0]),

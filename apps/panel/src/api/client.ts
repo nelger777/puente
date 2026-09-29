@@ -8,6 +8,8 @@ import type {
   HandoffStatus,
   KnowledgeItemInput,
   KnowledgeResponse,
+  LlmSettings,
+  LlmTestResponse,
   LoginRequest,
   MeResponse,
   MetricsResponse,
@@ -78,6 +80,9 @@ export const api = {
   uploadAvatar: (dataUrl: string) =>
     request<BusinessResponse>("PUT", "/v1/admin/business/avatar", { dataUrl }),
   removeAvatar: () => request<BusinessResponse>("DELETE", "/v1/admin/business/avatar"),
+  updateLlm: (body: LlmSettings) =>
+    request<BusinessResponse>("PUT", "/v1/admin/business/llm", body),
+  testLlm: () => request<LlmTestResponse>("POST", "/v1/admin/business/llm/test"),
 
   knowledge: () => request<KnowledgeResponse>("GET", "/v1/admin/knowledge"),
   replaceKnowledge: (items: KnowledgeItemInput[]) =>
