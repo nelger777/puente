@@ -3,6 +3,7 @@ import {
   BrandColorSchema,
   BusinessHoursSchema,
   SuggestionsSchema,
+  VoiceSchema,
   WhatsappNumberSchema,
 } from "./business";
 import { HandoffCodeSchema, HandoffReasonSchema, HandoffStatusSchema } from "./handoff";
@@ -49,6 +50,7 @@ export const BusinessSettingsSchema = z.object({
   name: text(80),
   kind: text(60),
   botName: text(40),
+  voice: VoiceSchema,
   brandColor: BrandColorSchema,
   whatsappNumber: WhatsappNumberSchema,
   notifyEmail: z.email("Correo inválido").max(254),

@@ -71,6 +71,7 @@ button, input, textarea { font: inherit; color: inherit; }
 .messages > * { flex-shrink: 0; }
 .msg { max-width: 85%; padding: 8px 12px; border-radius: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .msg.bot { background: var(--bubble); align-self: flex-start; border-bottom-left-radius: 4px; }
+.msg.bot a { color: var(--brand); font-weight: 600; text-decoration: underline; overflow-wrap: anywhere; }
 .msg.user { background: var(--brand); color: var(--on-brand); align-self: flex-end; border-bottom-right-radius: 4px; }
 .notice { align-self: center; text-align: center; color: var(--muted); font-size: 13px; max-width: 90%; }
 .typing { color: var(--muted); font-size: 13px; padding: 0 4px; }

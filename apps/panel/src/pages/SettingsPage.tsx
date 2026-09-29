@@ -125,6 +125,22 @@ export function SettingsPage() {
           {field("name", "Nombre del negocio", text("name"))}
           {field("kind", "Rubro", text("kind"), { help: "Ej.: óptica, ferretería" })}
           {field("botName", "Nombre del asistente", text("botName"))}
+          {field(
+            "voice",
+            "Trato al cliente",
+            (p) => (
+              <select
+                {...p}
+                value={form.voice}
+                disabled={!isAdmin}
+                onChange={(e) => set("voice", e.target.value === "vos" ? "vos" : "tu")}
+              >
+                <option value="tu">Tú (escribe, puedes)</option>
+                <option value="vos">Vos (escribí, podés)</option>
+              </select>
+            ),
+            { help: "Cómo le habla el asistente al cliente, también en los textos del widget." },
+          )}
           {field("brandColor", "Color de marca", text("brandColor"), { help: "Formato #RRGGBB" })}
           {field("whatsappNumber", "WhatsApp del equipo", text("whatsappNumber", "tel"), {
             help: "Con código de país, solo dígitos (ej.: 595981123456)",

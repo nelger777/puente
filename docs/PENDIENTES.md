@@ -39,6 +39,15 @@ docker compose up -d api
 - [ ] En `/opt/puente/deploy/.env`: `SMTP_URL=smtps://USUARIO:CLAVE@smtp.proveedor.com:465`, `MAIL_FROM="Puente <avisos@firefly.com.py>"`, `ALERT_EMAIL=tu correo`; luego `docker compose up -d api`.
 - [ ] Probar: pedir "hablar con una persona" en _Probar_ no envía correo (es modo prueba); hacerlo desde la página de prueba del widget.
 
+## La Rural Seguros (asistente Laura)
+
+- [ ] Cargar el negocio en staging: `sh deploy/deploy.sh` y luego, en `/opt/puente/deploy`: `docker compose exec -e SEED_BUSINESS=la-rural api node dist/seed.js` (el admin de `SEED_ADMIN_EMAIL` pasa a gestionar La Rural).
+- [ ] **Reemplazar los datos ficticios** antes de mostrarlo a La Rural (`_datosFicticios` en `apps/api/prisma/businesses/la-rural.json`, o desde el panel): enlaces de cotización, seguros, sucursales, denuncia de siniestros y medios de pago; lista de oficinas y horarios; correo de avisos; color de marca.
+- [ ] Probar a Laura con la IA real (requiere crédito en Anthropic): preguntas de la base, pedido de datos para siniestros/pólizas y derivación.
+- [ ] Instalar el widget en `www.larural.com.py` (snippet en _Instalación_).
+- [ ] Presupuesto de IA estimado para ~50 conversaciones web/día: 20–30 USD/mes.
+- [ ] Fase 2 (a definir con La Rural): bot en WhatsApp (API de WhatsApp Business) e integración con Joaju (CRM).
+
 ## Opcional más adelante
 
 - [ ] Enlace directo al chat (página alojada) para comercios que no pueden editar su HTML.

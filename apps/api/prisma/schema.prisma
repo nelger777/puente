@@ -16,6 +16,7 @@ model Business {
   name               String
   kind               String
   botName            String
+  voice              String          @default("tu") // "tu" | "vos": how the assistant addresses customers
   brandColor         String          @default("#1F5FBF")
   whatsappNumber     String // digits only, with country code
   notifyEmail        String

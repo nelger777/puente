@@ -1,5 +1,6 @@
 import { h } from "./dom";
 import type { HandoffItem } from "./storage";
+import type { WidgetTexts } from "./texts";
 
 export interface CardHandlers {
   onWhatsApp(item: HandoffItem): void;
@@ -20,6 +21,7 @@ export function renderHandoffCard(
   item: HandoffItem,
   businessName: string,
   handlers: CardHandlers,
+  t: WidgetTexts,
 ): HTMLElement {
   const { handoff } = item;
   const body = h("div", { class: "card-body" });
@@ -28,11 +30,7 @@ export function renderHandoffCard(
     body.append(h("p", { class: "warn" }, handoff.offHoursMessage));
   }
   body.append(
-    h(
-      "p",
-      { class: "hint" },
-      "Resumen de tu consulta. Ya queda escrito en WhatsApp: solo tienes que enviarlo.",
-    ),
+    h("p", { class: "hint" }, t.cardHint),
     h("div", { class: "preview" }, h("p", {}, handoff.waMessage)),
   );
 
@@ -47,36 +45,34 @@ export function renderHandoffCard(
           rel: "noopener noreferrer",
           onclick: () => handlers.onWhatsApp(item),
         },
-        item.whatsappOpened ? "Abrir WhatsApp de nuevo" : "Continuar por WhatsApp con un asesor",
+        item.whatsappOpened ? t.whatsappAgain : t.whatsappButton,
       ),
     );
   }
 
   if (item.contactPhone) {
-    body.append(
-      h("p", { class: "done" }, `Listo. El equipo te contactará al ${item.contactPhone}.`),
-    );
+    body.append(h("p", { class: "done" }, t.contactDone(item.contactPhone)));
   } else {
     if (item.whatsappOpened) {
-      body.append(h("p", { class: "done" }, "Listo. Continúa la conversación en WhatsApp."));
+      body.append(h("p", { class: "done" }, t.whatsappDone));
     }
-    body.append(contactForm(item, businessName, handlers));
+    body.append(contactForm(item, businessName, handlers, t));
   }
 
   return h(
     "section",
     { class: "card", "aria-label": `Derivación ${handoff.code}` },
-    h(
-      "div",
-      { class: "card-head" },
-      h("span", {}, "Te conectamos con una persona"),
-      h("span", {}, handoff.code),
-    ),
+    h("div", { class: "card-head" }, h("span", {}, t.cardTitle), h("span", {}, handoff.code)),
     body,
   );
 }
 
-function contactForm(item: HandoffItem, businessName: string, handlers: CardHandlers): HTMLElement {
+function contactForm(
+  item: HandoffItem,
+  businessName: string,
+  handlers: CardHandlers,
+  t: WidgetTexts,
+): HTMLElement {
   const code = item.handoff.code;
   const name = h("input", { type: "text", id: `pn-${code}`, autocomplete: "name", maxlength: 80 });
   const phone = h("input", {
@@ -88,7 +84,7 @@ function contactForm(item: HandoffItem, businessName: string, handlers: CardHand
   });
   const consent = h("input", { type: "checkbox", id: `pc-${code}`, required: true });
   const error = h("p", { class: "error", role: "alert" });
-  const submit = h("button", { type: "submit" }, "Que me contacten");
+  const submit = h("button", { type: "submit" }, t.contactSubmit);
 
   const form = h(
     "form",
@@ -98,35 +94,30 @@ function contactForm(item: HandoffItem, businessName: string, handlers: CardHand
         event.preventDefault();
         error.textContent = "";
         if (!isValidPhone(phone.value)) {
-          error.textContent = "Escribe un teléfono válido.";
+          error.textContent = t.phoneInvalid;
           phone.focus();
           return;
         }
         if (!consent.checked) {
-          error.textContent = "Necesitamos tu autorización para contactarte.";
+          error.textContent = t.consentMissing;
           consent.focus();
           return;
         }
         submit.disabled = true;
         handlers.onContact(item, name.value.trim(), phone.value.trim()).catch(() => {
-          error.textContent = "No pudimos enviar tus datos. Intenta de nuevo.";
+          error.textContent = t.contactFailed;
           submit.disabled = false;
         });
       },
     },
-    h("label", { for: `pn-${code}` }, "Tu nombre (opcional)"),
+    h("label", { for: `pn-${code}` }, t.contactName),
     name,
-    h("label", { for: `pp-${code}` }, "Tu teléfono"),
+    h("label", { for: `pp-${code}` }, t.contactPhone),
     phone,
-    h(
-      "label",
-      { class: "consent", for: `pc-${code}` },
-      consent,
-      `Acepto que ${businessName} use estos datos solo para contactarme por esta consulta.`,
-    ),
+    h("label", { class: "consent", for: `pc-${code}` }, consent, t.consent(businessName)),
     error,
     submit,
   );
 
-  return h("details", {}, h("summary", {}, "¿Prefieres que te contacten?"), form);
+  return h("details", {}, h("summary", {}, t.contactSummary), form);
 }

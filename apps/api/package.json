@@ -10,7 +10,7 @@
     "test": "vitest run",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev && prisma generate",
+    "db:migrate": "prisma generate && prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "e2e:server": "tsx test/e2e-server.ts",

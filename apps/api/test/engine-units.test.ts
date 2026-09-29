@@ -126,12 +126,27 @@ describe("handoff texts", () => {
 describe("prompt", () => {
   it("puts the business data and knowledge in the system prompt", () => {
     const prompt = buildSystemPrompt(
-      { botName: "Luz", name: "Óptica Mirador", kind: "óptica", sensitiveTopics: ["reclamo"] },
+      {
+        botName: "Luz",
+        name: "Óptica Mirador",
+        kind: "óptica",
+        sensitiveTopics: ["reclamo"],
+        voice: "tu",
+      },
       [{ question: "¿Horario?", answer: "De 8 a 18." }],
     );
     expect(prompt).toContain('Eres Luz, asistente virtual de "Óptica Mirador" (óptica)');
     expect(prompt).toContain("TEMAS SENSIBLES: reclamo");
     expect(prompt).toContain("1. P: ¿Horario?\n   R: De 8 a 18.");
+    expect(prompt).toContain("Tratas al cliente de tú.");
+  });
+
+  it("asks for voseo when the business uses vos", () => {
+    const prompt = buildSystemPrompt(
+      { botName: "Laura", name: "La Rural", kind: "seguros", sensitiveTopics: [], voice: "vos" },
+      [],
+    );
+    expect(prompt).toContain("Tratás al cliente de vos");
   });
 
   it("keeps the last 20 turns and starts with the user", () => {

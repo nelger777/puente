@@ -12,7 +12,7 @@ import {
   type MetricsResponse,
 } from "@puente/shared";
 import type { Db } from "../db/client";
-import { businessHours } from "../engine/business";
+import { businessHours, businessVoice } from "../engine/business";
 import type { Business, Prisma } from "../generated/prisma/client";
 import { ApiError } from "../lib/errors";
 import { newId } from "../lib/ids";
@@ -39,6 +39,7 @@ export function toBusinessResponse(business: Business, widgetBaseUrl: string): B
     name: business.name,
     kind: business.kind,
     botName: business.botName,
+    voice: businessVoice(business),
     brandColor: business.brandColor,
     whatsappNumber: business.whatsappNumber,
     notifyEmail: business.notifyEmail,

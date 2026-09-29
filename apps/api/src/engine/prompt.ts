@@ -1,9 +1,15 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Business, KnowledgeItem, Message } from "../generated/prisma/client";
+import { businessVoice } from "./business";
 
 export const HISTORY_LIMIT = 20;
 
-type PromptBusiness = Pick<Business, "botName" | "name" | "kind" | "sensitiveTopics">;
+type PromptBusiness = Pick<Business, "botName" | "name" | "kind" | "sensitiveTopics" | "voice">;
+
+const VOICE_RULE = {
+  tu: "- Tratas al cliente de tú.",
+  vos: "- Tratás al cliente de vos, como se habla en Paraguay (completá, podés, indicanos); nunca de tú ni de usted.",
+} as const;
 type PromptKnowledge = Pick<KnowledgeItem, "question" | "answer">;
 
 /**
@@ -19,6 +25,7 @@ export function buildSystemPrompt(business: PromptBusiness, knowledge: PromptKno
   return `Eres ${business.botName}, asistente virtual de "${business.name}" (${business.kind}). Respondes en español, cordial y breve (máximo 3 frases).
 
 REGLAS
+${VOICE_RULE[businessVoice(business)]}
 - Responde SOLO con información de la BASE DE CONOCIMIENTO. Nunca inventes precios, plazos ni datos.
 - Deriva a una persona (handoff=true) cuando: el cliente lo pide; la respuesta no está en la base; el tema está en TEMAS SENSIBLES; el cliente muestra frustración; o ya respondiste algo sin resolverlo.
 - Si derivas, avisa que lo conectas con el equipo.

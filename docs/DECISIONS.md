@@ -94,3 +94,15 @@ Complementa `docs/SPEC.md`. Cada decisión resuelve un hueco o una contradicció
 | Widget      | Llama al mismo origen desde el que se sirve (`new URL(script.src).origin`): imágenes sin dominio fijo. `data-api` sigue teniendo prioridad; en desarrollo usa `PUBLIC_API_URL`.                                                                     |
 | Red         | En servidor compartido, `web` escucha solo en `127.0.0.1:8090` y el proxy existente del servidor termina HTTPS; Caddy de Puente confía en proxies de rangos privados para conservar la IP del cliente.                                              |
 | Convivencia | Límites de memoria (db 256 MB, api 384 MB, web 96 MB); `deploy.sh` no limpia imágenes ajenas ni toca firewall o paquetes. Versión fijable con `PUENTE_VERSION`.                                                                                     |
+
+## Primer cliente: La Rural Seguros (2026-09-29)
+
+| Tema            | Decisión                                                                                                                                                                                                 |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Alcance         | Fase 1 solo web. El bot dentro de WhatsApp (API de WhatsApp Business) y la integración con Joaju (CRM) quedan para fases posteriores.                                                                    |
+| Trato           | Campo `Business.voice` (`tu` / `vos`): regla en el prompt, textos del widget y la respuesta fija que cambia. La Rural usa `vos`.                                                                         |
+| Enlaces         | El widget convierte URLs de las respuestas del asistente en enlaces (solo http/https, pestaña nueva, `noopener`); los mensajes del cliente quedan como texto.                                            |
+| Derivación      | Al WhatsApp corporativo de experiencia (+595 974 590950), que va directo a una persona; el principal (+595 975 617400) tiene menú de bienvenida y se menciona en la base.                                |
+| Temas sensibles | Reclamos, quejas y temas legales van directo a una persona. "Denuncia" no es sensible: es cómo se reporta un siniestro y debe responderse con el formulario.                                             |
+| Semilla         | Negocios en `apps/api/prisma/businesses/*.json`, validados con los mismos esquemas del panel; `SEED_BUSINESS=la-rural`. Si `SEED_ADMIN_EMAIL` ya existe, ese admin pasa a gestionar el negocio sembrado. |
+| Datos ficticios | Enlaces, oficinas, correo de avisos y color de La Rural son provisorios y están listados en `_datosFicticios` del JSON.                                                                                  |

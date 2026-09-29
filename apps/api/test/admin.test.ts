@@ -152,6 +152,7 @@ describe("business settings", () => {
     name: "Óptica Mirador Centro",
     kind: "óptica",
     botName: "Sol",
+    voice: "vos",
     brandColor: "#0F7A6B",
     whatsappNumber: "595981222333",
     notifyEmail: "nuevo@opticamirador.com",
@@ -176,6 +177,7 @@ describe("business settings", () => {
     const body = BusinessResponseSchema.parse(res.json());
     expect(body).toMatchObject({
       botName: "Sol",
+      voice: "vos",
       widgetScriptUrl: "https://cdn.puente.test/v1.js",
     });
     const got = BusinessResponseSchema.parse(

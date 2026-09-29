@@ -9,6 +9,7 @@ export interface SettingsForm {
   name: string;
   kind: string;
   botName: string;
+  voice: "tu" | "vos";
   brandColor: string;
   whatsappNumber: string;
   notifyEmail: string;
@@ -39,6 +40,7 @@ export function toForm(b: BusinessResponse): SettingsForm {
     name: b.name,
     kind: b.kind,
     botName: b.botName,
+    voice: b.voice,
     brandColor: b.brandColor,
     whatsappNumber: b.whatsappNumber,
     notifyEmail: b.notifyEmail,
@@ -72,6 +74,7 @@ export function fromForm(
     name: form.name,
     kind: form.kind,
     botName: form.botName,
+    voice: form.voice,
     brandColor: form.brandColor.trim(),
     whatsappNumber: form.whatsappNumber.replace(/[\s+()-]/g, ""),
     notifyEmail: form.notifyEmail.trim(),

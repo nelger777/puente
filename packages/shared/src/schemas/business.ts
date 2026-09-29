@@ -18,4 +18,8 @@ export const WhatsappNumberSchema = z
 
 export const BrandColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Formato #RRGGBB");
 
+/** How the assistant and the widget address customers: "tú" or Paraguayan/Rioplatense "vos". */
+export const VoiceSchema = z.enum(["tu", "vos"]);
+export type Voice = z.infer<typeof VoiceSchema>;
+
 export const SuggestionsSchema = z.array(z.string().trim().min(1).max(60)).max(3);

@@ -10,7 +10,7 @@ import type { Business, Conversation } from "../generated/prisma/client";
 import { newId } from "../lib/ids";
 import { isInHours } from "../lib/time";
 import type { Notifier } from "../services/notifications";
-import { businessHours } from "./business";
+import { businessHours, businessVoice } from "./business";
 import { loadOrCreateConversation } from "./conversation";
 import {
   fallbackWaMessage,
@@ -33,6 +33,13 @@ export const REPLIES = {
     "Ya derivé tu consulta al equipo. Toca el botón de WhatsApp para seguir con una persona.",
   technicalFailure:
     "En este momento no puedo responder, pero te conecto con el equipo para que no pierdas tu consulta.",
+} as const;
+
+/** The only fixed reply that changes with "vos" (the rest reads the same). */
+export const REPLIES_VOS = {
+  ...REPLIES,
+  limitAlreadyHandedOff:
+    "Ya derivé tu consulta al equipo. Tocá el botón de WhatsApp para seguir con una persona.",
 } as const;
 
 export interface EngineDeps {
@@ -125,8 +132,9 @@ export async function handleChat(
   };
 
   if (counted.userMessageCount > business.maxMessagesPerConv) {
+    const replies = businessVoice(business) === "vos" ? REPLIES_VOS : REPLIES;
     return finishWithHandoff(turn, "LIMIT", null, { engine: "rules" }, (created) =>
-      created ? REPLIES.limit : REPLIES.limitAlreadyHandedOff,
+      created ? replies.limit : replies.limitAlreadyHandedOff,
     );
   }
 

@@ -1,0 +1,112 @@
+{
+  "slug": "la-rural",
+  "devPublicKey": "pk_demo_larural",
+  "devAdminEmail": "admin@larural.local",
+  "_datosFicticios": [
+    "Todos los enlaces https://www.larural.com.py/... (cotización de automóvil, seguros, sucursales, denuncia de siniestros, medios de pago)",
+    "Lista de oficinas, direcciones y horarios de sucursales",
+    "notifyEmail (experiencia@larural.com.py)",
+    "brandColor (#00843D)"
+  ],
+  "settings": {
+    "name": "La Rural Seguros",
+    "kind": "compañía de seguros",
+    "botName": "Laura",
+    "voice": "vos",
+    "brandColor": "#00843D",
+    "whatsappNumber": "595974590950",
+    "notifyEmail": "experiencia@larural.com.py",
+    "timezone": "America/Asuncion",
+    "hours": { "days": [1, 2, 3, 4, 5], "from": "08:00", "to": "17:30" },
+    "offHoursMessage": "En este momento nuestros asesores no están disponibles. Atendemos de lunes a viernes, de 08:00 a 17:30 hs; tu consulta será atendida el siguiente día hábil. Si necesitás asistencia con tu vehículo, llamá a Asistencia 24 hs.: 021 617 4000.",
+    "greeting": "¡Hola! Soy Laura, la asistente virtual de La Rural Seguros. Te ayudo con cotizaciones, siniestros, pólizas y pagos. ¿En qué te puedo ayudar?",
+    "suggestions": ["Cotizar mi seguro", "Tuve un accidente", "Hablar con un asesor"],
+    "sensitiveTopics": [
+      "reclamo",
+      "queja",
+      "abogado",
+      "demanda judicial",
+      "defensa del consumidor",
+      "fraude",
+      "estafa"
+    ],
+    "allowedDomains": ["larural.com.py", "www.larural.com.py", "puente.firefly.com.py"],
+    "maxMessagesPerConv": 20,
+    "dailyMessageCap": 2000,
+    "active": true
+  },
+  "knowledge": [
+    {
+      "question": "¿Cómo cotizo el seguro de mi auto? ¿Cuánto cuesta asegurar mi auto? Quiero asegurar mi vehículo.",
+      "answer": "El costo depende de las características del vehículo y de la cobertura que elijas. Para cotizar, completá tus datos y los de tu vehículo en este formulario y un asesor te contacta con la propuesta: https://www.larural.com.py/automoviles"
+    },
+    {
+      "question": "Quiero cotizar otro tipo de seguro. ¿Qué tipos de seguros ofrecen?",
+      "answer": "En La Rural tenemos seguros de Automóvil, Hogar, Comercio, Vida, Accidentes Personales, Responsabilidad Civil, Transporte, Caución, Riesgos Técnicos y otros riesgos. Podés conocerlos y cotizar aquí: https://www.larural.com.py/seguros. Si preferís asesoramiento, te derivamos con un asesor."
+    },
+    {
+      "question": "¿Cuál es el horario de atención? ¿Atienden los sábados?",
+      "answer": "Atendemos de lunes a viernes, de 08:00 a 17:30 hs. Los sábados, domingos y feriados no hay atención en oficinas. Fuera de ese horario podés dejar tu consulta por este medio y te respondemos el siguiente día hábil. Para asistencia con tu vehículo, llamá a Asistencia 24 hs.: 021 617 4000."
+    },
+    {
+      "question": "¿Dónde están ubicadas sus oficinas? ¿Cuál es la oficina más cercana?",
+      "answer": "Tenemos oficinas en: Asunción, Casa Central (Av. Mariscal López 1234, lunes a viernes de 08:00 a 17:30); San Lorenzo (Ruta PY02 km 12, lunes a viernes de 08:00 a 16:00); Ciudad del Este (Av. San Blas 456, lunes a viernes de 08:00 a 16:00); Encarnación (Mcal. Estigarribia 789, lunes a viernes de 08:00 a 16:00); Coronel Oviedo (Av. Carlos Antonio López 321, lunes a viernes de 08:00 a 16:00) y Concepción (Pdte. Franco 654, lunes a viernes de 08:00 a 16:00). Si nos decís tu ciudad, te indicamos la más cercana. Mapa y ubicaciones: https://www.larural.com.py/sucursales"
+    },
+    {
+      "question": "¿Cuál es el número de Asistencia 24 hs.? Necesito una grúa. Mi auto se quedó y necesito ayuda.",
+      "answer": "Llamá a nuestra línea de Asistencia 24 hs.: 021 617 4000. Te orientan y coordinan el servicio que corresponda (grúa, auxilio mecánico, etc.) según tu cobertura."
+    },
+    {
+      "question": "Tuve un accidente, me chocaron o choqué: ¿qué hago y cómo hago la denuncia?",
+      "answer": "Primero, priorizá tu seguridad y la de las demás personas. Si necesitás asistencia inmediata con el vehículo, llamá al 021 617 4000 (Asistencia 24 hs.). Para denunciar el siniestro, completá el formulario online y adjuntá la documentación: https://www.larural.com.py/siniestros/denuncia"
+    },
+    {
+      "question": "¿Qué documentos necesito para denunciar un siniestro?",
+      "answer": "Durante la denuncia te pueden pedir: fotos del vehículo y de los daños, Cédula Verde, Habilitación, Registro de conducir y otros documentos según el caso. Iniciá la denuncia aquí: https://www.larural.com.py/siniestros/denuncia"
+    },
+    {
+      "question": "¿Cuál es el estado de mi siniestro? ¿Ya está autorizado mi vehículo para ingresar al taller? ¿Dónde tengo que llevarlo a reparar?",
+      "answer": "Eso depende de la gestión de cada siniestro y lo verifica el área de Siniestros. Indicanos tu nombre y apellido, tu número de cédula y, si lo tenés, el número de siniestro, y derivamos tu consulta a un asesor."
+    },
+    {
+      "question": "Tengo una consulta sobre mi póliza (coberturas, vigencia, renovación, documentación o pagos).",
+      "answer": "¡Claro! Contanos qué necesitás consultar: coberturas, vigencia, renovación, documentación, pagos u otra consulta. Si hace falta revisar los datos de tu póliza, te derivamos con un asesor."
+    },
+    {
+      "question": "Necesito una copia de mi póliza, saber cuándo vence mi seguro, renovarlo o qué cubre.",
+      "answer": "Para eso necesitamos identificar tu póliza. Indicanos tu nombre y apellido y tu número de cédula o RUC, y derivamos tu solicitud a un asesor."
+    },
+    {
+      "question": "¿Cómo puedo pagar mi seguro?",
+      "answer": "Tenemos distintos medios de pago; podés verlos aquí: https://www.larural.com.py/medios-de-pago. Si querés consultar un pago específico, te derivamos al área correspondiente."
+    },
+    {
+      "question": "Ya pagué, pero todavía figura pendiente.",
+      "answer": "Te ayudamos a verificarlo. Compartinos los datos del asegurado (nombre y cédula o RUC) y el comprobante de pago, y derivamos tu consulta al área correspondiente."
+    },
+    {
+      "question": "Necesito mi factura o comprobante.",
+      "answer": "Compartinos tu nombre y apellido o razón social y tu número de cédula o RUC, y derivamos tu solicitud al área correspondiente."
+    },
+    {
+      "question": "Quiero hablar con una persona o con un asesor.",
+      "answer": "Nuestro equipo atiende de lunes a viernes, de 08:00 a 17:30 hs, y te conectamos con un asesor. Si escribís fuera de ese horario, tu consulta se atiende el siguiente día hábil."
+    },
+    {
+      "question": "Quiero dejar una sugerencia o un comentario.",
+      "answer": "¡Gracias por compartirlo! Escribí tu comentario por este medio y lo derivamos al área de Experiencia para su revisión y seguimiento."
+    },
+    {
+      "question": "Es una urgencia.",
+      "answer": "Si es una urgencia con tu vehículo, llamá ya a Asistencia 24 hs.: 021 617 4000. Si es otro tipo de gestión, contanos brevemente qué necesitás para orientarte."
+    },
+    {
+      "question": "¿Tienen WhatsApp de atención?",
+      "answer": "Sí, nuestro WhatsApp de atención es +595 975 617400."
+    },
+    {
+      "question": "No encuentro la opción que necesito.",
+      "answer": "No hay problema: escribinos brevemente qué necesitás y te orientamos. También podés tocar \"Asesor\" para hablar con una persona dentro de nuestro horario de atención."
+    }
+  ]
+}

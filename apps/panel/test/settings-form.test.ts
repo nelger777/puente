@@ -10,6 +10,7 @@ const BUSINESS: BusinessResponse = {
   name: "Óptica Mirador",
   kind: "óptica",
   botName: "Luz",
+  voice: "tu",
   brandColor: "#1F5FBF",
   whatsappNumber: "595981000000",
   notifyEmail: "equipo@opticamirador.com",

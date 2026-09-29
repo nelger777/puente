@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { ChatResponseSchema, type ChatResponse } from "@puente/shared";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { IpRateLimiter } from "../src/engine/rate-limits";
-import { REPLIES } from "../src/engine/pipeline";
+import { REPLIES, REPLIES_VOS } from "../src/engine/pipeline";
 import {
   answer,
   createBusiness,
@@ -43,6 +43,7 @@ describe("GET /v1/widget/config", () => {
     expect(res.json()).toMatchObject({
       businessName: "Óptica Mirador",
       botName: "Luz",
+      voice: "tu",
       greeting: "¡Hola! Soy Luz.",
       suggestions: ["¿Cuál es el horario?"],
     });
@@ -220,6 +221,19 @@ describe("POST /v1/chat — handoff reasons", () => {
     );
     expect(fourth.reply).toBe(REPLIES.limitAlreadyHandedOff);
     expect(fourth.handoff?.code).toBe(third.handoff?.code);
+  });
+
+  it("LIMIT: speaks with vos when the business uses it", async () => {
+    const business = await createBusiness(db, { maxMessagesPerConv: 0, voice: "vos" });
+    const { app } = makeApp(db);
+    const first = body(await postChat(app, { key: business.publicKey, message: "hola" }));
+    const ids = {
+      conversationId: first.conversationId,
+      conversationToken: first.conversationToken,
+    };
+    const again = body(await postChat(app, { key: business.publicKey, message: "¿y?", ...ids }));
+    expect(again.reply).toBe(REPLIES_VOS.limitAlreadyHandedOff);
+    expect(again.reply).toContain("Tocá");
   });
 
   it("TECHNICAL_FAILURE: invalid model output still answers 200 with a handoff", async () => {

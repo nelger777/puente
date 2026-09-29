@@ -2,10 +2,12 @@ import type { ChatResponse, WidgetConfigResponse } from "@puente/shared";
 import { ApiRequestError, type WidgetApi } from "./api";
 import { h, textColorFor } from "./dom";
 import { renderHandoffCard, type CardHandlers } from "./handoff-card";
+import { linkify } from "./linkify";
 import type { ChatItem, HandoffItem, StateStore, WidgetState } from "./storage";
 import { STYLES } from "./styles";
+import { textsFor, type WidgetTexts } from "./texts";
 
-export const ASK_FOR_PERSON = "Quiero hablar con una persona por WhatsApp";
+export const ASK_FOR_PERSON = textsFor("tu").askForPerson;
 
 export type ChatApi = Pick<WidgetApi, "chat" | "requestContact" | "trackEvent">;
 
@@ -26,6 +28,7 @@ export class ChatWidget {
   private readonly sendButton: HTMLButtonElement;
   private readonly typing: HTMLElement;
   private readonly cardHandlers: CardHandlers;
+  private readonly t: WidgetTexts;
 
   constructor(
     root: ShadowRoot,
@@ -35,6 +38,8 @@ export class ChatWidget {
     options: { inline?: boolean } = {},
   ) {
     this.state = store.load();
+    this.t = textsFor(config.voice);
+    const t = this.t;
     const hasUserMessages = this.state.items.some((i) => i.kind === "user");
     this.quickReplies = hasUserMessages ? [] : config.suggestions;
 
@@ -63,16 +68,16 @@ export class ChatWidget {
       "aria-live": "polite",
       "aria-label": "Mensajes",
     });
-    this.typing = h("p", { class: "typing", hidden: true }, `${config.botName} está escribiendo…`);
+    this.typing = h("p", { class: "typing", hidden: true }, t.typing(config.botName));
     this.quick = h("div", { class: "quick", "aria-label": "Sugerencias" });
     this.input = h("input", {
       type: "text",
       maxlength: 1000,
-      placeholder: "Escribe tu consulta…",
+      placeholder: t.placeholder,
       "aria-label": "Tu mensaje",
       autocomplete: "off",
     });
-    this.sendButton = h("button", { type: "submit" }, "Enviar");
+    this.sendButton = h("button", { type: "submit" }, t.send);
 
     const initial = (config.botName.trim()[0] ?? "A").toUpperCase();
     this.panel = h(
@@ -95,18 +100,14 @@ export class ChatWidget {
           "div",
           { class: "title" },
           h("b", {}, `${config.botName} · ${config.businessName}`),
-          h(
-            "small",
-            {},
-            config.inHours ? "Equipo en horario de atención" : "Equipo fuera de horario",
-          ),
+          h("small", {}, config.inHours ? t.inHours : t.offHours),
         ),
         h(
           "button",
           {
             type: "button",
             title: "Hablar con una persona por WhatsApp",
-            onclick: () => void this.send(ASK_FOR_PERSON),
+            onclick: () => void this.send(t.askForPerson),
           },
           "Asesor",
         ),
@@ -178,9 +179,7 @@ export class ChatWidget {
       const limited = err instanceof ApiRequestError && err.status === 429;
       this.addItem({
         kind: "notice",
-        text: limited
-          ? "Estás enviando muchos mensajes. Espera un momento y vuelve a intentar."
-          : "No pudimos enviar tu mensaje. Revisa tu conexión e intenta de nuevo.",
+        text: limited ? this.t.rateLimited : this.t.sendFailed,
       });
       this.input.value = text;
       return;
@@ -208,8 +207,8 @@ export class ChatWidget {
         kind: "notice",
         text:
           response.remainingMessages > 0
-            ? `Quedan ${response.remainingMessages} ${response.remainingMessages === 1 ? "mensaje" : "mensajes"} en esta conversación. Después te conecto con una persona del equipo.`
-            : "Llegaste al límite de mensajes. Si escribes de nuevo, te conecto con una persona del equipo.",
+            ? this.t.remaining(response.remainingMessages)
+            : this.t.limitReached,
       });
     }
     this.quickReplies = response.quickReplies;
@@ -277,9 +276,11 @@ export class ChatWidget {
 
   private renderItem(item: ChatItem): HTMLElement {
     if (item.kind === "handoff") {
-      return renderHandoffCard(item, this.config.businessName, this.cardHandlers);
+      return renderHandoffCard(item, this.config.businessName, this.cardHandlers, this.t);
     }
     if (item.kind === "notice") return h("p", { class: "notice" }, item.text);
+    // Assistant replies may carry links (quote forms, claims); the customer's text stays plain.
+    if (item.kind === "bot") return h("div", { class: "msg bot" }, ...linkify(item.text));
     return h("div", { class: `msg ${item.kind}` }, item.text);
   }
 

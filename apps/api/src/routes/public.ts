@@ -10,7 +10,7 @@ import {
 } from "@puente/shared";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import type { Db } from "../db/client";
-import { businessHours } from "../engine/business";
+import { businessHours, businessVoice } from "../engine/business";
 import { findHandoffForCustomer } from "../engine/handoff";
 import { handleChat, type EngineDeps } from "../engine/pipeline";
 import type { IpRateLimiter } from "../engine/rate-limits";
@@ -60,6 +60,7 @@ export function publicRoutes(deps: PublicRoutesDeps) {
       const body: WidgetConfigResponse = {
         businessName: business.name,
         botName: business.botName,
+        voice: businessVoice(business),
         brandColor: business.brandColor,
         greeting: business.greeting,
         suggestions: business.suggestions,

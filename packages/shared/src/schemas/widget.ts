@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { VoiceSchema } from "./business";
 import { HandoffCodeSchema, HandoffReasonSchema } from "./handoff";
 
 export const PublicKeySchema = z.string().regex(/^pk_[A-Za-z0-9_-]{8,64}$/);
@@ -10,6 +11,7 @@ export const WidgetConfigQuerySchema = z.object({ key: PublicKeySchema });
 export const WidgetConfigResponseSchema = z.object({
   businessName: z.string(),
   botName: z.string(),
+  voice: VoiceSchema,
   brandColor: z.string(),
   greeting: z.string(),
   suggestions: z.array(z.string()),

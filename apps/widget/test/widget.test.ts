@@ -4,8 +4,12 @@ import { ApiRequestError } from "../src/api";
 import { readSettings } from "../src/config";
 import { textColorFor } from "../src/dom";
 import { isValidPhone, renderHandoffCard } from "../src/handoff-card";
+import { linkify } from "../src/linkify";
 import { StateStore, type HandoffItem } from "../src/storage";
+import { textsFor } from "../src/texts";
 import { ASK_FOR_PERSON, ChatWidget } from "../src/widget";
+
+const TU = textsFor("tu");
 
 const HANDOFF: ChatHandoff = {
   code: "DER-4821",
@@ -19,6 +23,7 @@ const HANDOFF: ChatHandoff = {
 const CONFIG: WidgetConfigResponse = {
   businessName: "Óptica Mirador",
   botName: "Luz",
+  voice: "tu",
   brandColor: "#1F5FBF",
   greeting: "¡Hola! Soy Luz.",
   suggestions: ["¿Cuál es el horario?"],
@@ -37,7 +42,10 @@ function reply(overrides: Partial<ChatResponse> = {}): ChatResponse {
   };
 }
 
-function mount(api: Partial<ConstructorParameters<typeof ChatWidget>[2]> = {}) {
+function mount(
+  api: Partial<ConstructorParameters<typeof ChatWidget>[2]> = {},
+  config: WidgetConfigResponse = CONFIG,
+) {
   const host = document.createElement("div");
   document.body.append(host);
   const root = host.attachShadow({ mode: "open" });
@@ -47,7 +55,7 @@ function mount(api: Partial<ConstructorParameters<typeof ChatWidget>[2]> = {}) {
     trackEvent: vi.fn(() => Promise.resolve()),
     ...api,
   };
-  const widget = new ChatWidget(root, CONFIG, fullApi, new StateStore("pk_test"));
+  const widget = new ChatWidget(root, config, fullApi, new StateStore("pk_test"));
   return { widget, root, api: fullApi };
 }
 
@@ -113,10 +121,12 @@ describe("handoff card", () => {
   });
 
   it("shows the off-hours notice, the message preview and the WhatsApp button", () => {
-    const card = renderHandoffCard(item(), "Óptica Mirador", {
-      onWhatsApp: vi.fn(),
-      onContact: vi.fn(),
-    });
+    const card = renderHandoffCard(
+      item(),
+      "Óptica Mirador",
+      { onWhatsApp: vi.fn(), onContact: vi.fn() },
+      TU,
+    );
     expect(card.textContent).toContain("Te conectamos con una persona");
     expect(card.textContent).toContain("DER-4821");
     expect(card.textContent).toContain("Te responderán apenas abran.");
@@ -129,13 +139,18 @@ describe("handoff card", () => {
 
   it("never renders a link that is not wa.me", () => {
     const bad = { ...item(), handoff: { ...HANDOFF, waUrl: "javascript:alert(1)" } };
-    const card = renderHandoffCard(bad, "X", { onWhatsApp: vi.fn(), onContact: vi.fn() });
+    const card = renderHandoffCard(bad, "X", { onWhatsApp: vi.fn(), onContact: vi.fn() }, TU);
     expect(card.querySelector("a")).toBeNull();
   });
 
   it("requires phone and consent before sending contact data", async () => {
     const onContact = vi.fn(() => Promise.resolve());
-    const card = renderHandoffCard(item(), "Óptica Mirador", { onWhatsApp: vi.fn(), onContact });
+    const card = renderHandoffCard(
+      item(),
+      "Óptica Mirador",
+      { onWhatsApp: vi.fn(), onContact },
+      TU,
+    );
     const form = card.querySelector("form");
     const phone = card.querySelector<HTMLInputElement>("input[type=tel]");
     const consent = card.querySelector<HTMLInputElement>("input[type=checkbox]");
@@ -208,6 +223,47 @@ describe("ChatWidget", () => {
     await widget.send("hola");
     expect(root.textContent).toContain("Estás enviando muchos mensajes");
     expect(root.querySelector<HTMLInputElement>(".composer input")?.value).toBe("hola");
+  });
+});
+
+describe("links in replies", () => {
+  it("turns URLs into safe links that open in a new tab", () => {
+    const parts = linkify("Completá el formulario: www.larural.com.py/automoviles. ¡Gracias!");
+    expect(parts[0]).toBe("Completá el formulario: ");
+    const a = parts[1] as HTMLAnchorElement;
+    expect(a.href).toBe("https://www.larural.com.py/automoviles");
+    expect(a.textContent).toBe("www.larural.com.py/automoviles");
+    expect(a.target).toBe("_blank");
+    expect(a.rel).toContain("noopener");
+    expect(parts[2]).toBe(". ¡Gracias!");
+  });
+
+  it("never links other schemes and keeps text as text", () => {
+    const parts = linkify("javascript:alert(1) <b>hola</b> https://ok.com/x?a=1");
+    expect(parts.filter((p) => typeof p !== "string")).toHaveLength(1);
+    expect((parts.at(-1) as HTMLAnchorElement).href).toBe("https://ok.com/x?a=1");
+    expect(parts[0]).toBe("javascript:alert(1) <b>hola</b> ");
+  });
+
+  it("links only the assistant's messages", async () => {
+    const chat = vi.fn(() => Promise.resolve(reply({ reply: "Mirá https://ejemplo.com" })));
+    const { root, widget } = mount({ chat });
+    await widget.send("mi web es https://mia.com");
+    const links = [...root.querySelectorAll(".msg a")].map((a) => a.getAttribute("href"));
+    expect(links).toEqual(["https://ejemplo.com/"]);
+  });
+});
+
+describe("voice", () => {
+  it("uses vos across the widget texts when the business asks for it", async () => {
+    const chat = vi.fn(() => Promise.resolve(reply({ handoff: HANDOFF })));
+    const { root, widget } = mount({ chat }, { ...CONFIG, voice: "vos" });
+    expect(root.querySelector<HTMLInputElement>(".composer input")?.placeholder).toBe(
+      "Escribí tu consulta…",
+    );
+    await widget.send("hola");
+    expect(root.textContent).toContain("solo tenés que enviarlo");
+    expect(root.textContent).toContain("¿Preferís que te contacten?");
   });
 });
 

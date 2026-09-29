@@ -1,0 +1,46 @@
+{
+  "slug": "optica-mirador",
+  "devPublicKey": "pk_demo_opticamirador",
+  "devAdminEmail": "admin@opticamirador.com",
+  "settings": {
+    "name": "Óptica Mirador",
+    "kind": "óptica",
+    "botName": "Luz",
+    "voice": "tu",
+    "brandColor": "#1F5FBF",
+    "whatsappNumber": "595981000000",
+    "notifyEmail": "equipo@opticamirador.com",
+    "timezone": "America/Asuncion",
+    "hours": { "days": [1, 2, 3, 4, 5, 6], "from": "08:00", "to": "18:00" },
+    "offHoursMessage": "El equipo atiende de lunes a sábado de 08:00 a 18:00. Te responderán apenas abran.",
+    "greeting": "¡Hola! Soy Luz de Óptica Mirador. Respondo tus consultas al instante y, si necesitas a una persona, te conecto con el equipo.",
+    "suggestions": ["¿Cuál es el horario?", "¿Hacen examen de la vista?", "Hablar con una persona"],
+    "sensitiveTopics": ["reclamo", "garantía", "receta médica", "reembolso"],
+    "allowedDomains": ["opticamirador.com"],
+    "maxMessagesPerConv": 20,
+    "dailyMessageCap": 2000,
+    "active": true
+  },
+  "knowledge": [
+    {
+      "question": "¿Cuál es el horario?",
+      "answer": "Atendemos de lunes a sábado de 08:00 a 18:00."
+    },
+    {
+      "question": "¿Hacen examen de la vista?",
+      "answer": "Sí, el examen visual es gratuito al comprar tus lentes. Sin compra cuesta Gs. 50.000."
+    },
+    {
+      "question": "¿Cuánto tarda un pedido de lentes?",
+      "answer": "Los lentes monofocales están en 3 días hábiles; los multifocales en 7 días hábiles."
+    },
+    {
+      "question": "¿Aceptan tarjetas?",
+      "answer": "Aceptamos tarjetas de crédito y débito, transferencia y efectivo. Hasta 6 cuotas sin intereses con tarjetas seleccionadas."
+    },
+    {
+      "question": "¿Dónde están ubicados?",
+      "answer": "Estamos en Av. Principal 1234, frente a la plaza. Hay estacionamiento gratuito."
+    }
+  ]
+}
