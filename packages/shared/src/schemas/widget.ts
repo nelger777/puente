@@ -11,6 +11,8 @@ export const WidgetConfigQuerySchema = z.object({ key: PublicKeySchema });
 export const WidgetConfigResponseSchema = z.object({
   businessName: z.string(),
   botName: z.string(),
+  /** Assistant picture, or null to show the initial of botName. */
+  avatarUrl: z.string().nullable(),
   voice: VoiceSchema,
   brandColor: z.string(),
   greeting: z.string(),

@@ -486,6 +486,34 @@ main {
   flex-wrap: wrap;
 }
 
+/* ---------- assistant picture ---------- */
+.avatar-card {
+  margin-bottom: 16px;
+}
+.avatar-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+.avatar-preview {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: 1.6rem;
+  font-weight: 700;
+  overflow: hidden;
+}
+.avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #fff;
+}
+
 /* ---------- knowledge ---------- */
 .kb-item {
   display: grid;

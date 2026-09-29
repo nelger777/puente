@@ -122,9 +122,16 @@ export function buildApp(deps: AppDeps, options: FastifyServerOptions = {}) {
   const panelOrigin = new URL(env.PANEL_URL).origin;
 
   void app.register(cookie);
-  void app.register(publicRoutes({ ...engine, allowLocalhost: env.NODE_ENV === "development" }), {
-    prefix: "/v1",
-  });
+  void app.register(
+    publicRoutes({
+      ...engine,
+      allowLocalhost: env.NODE_ENV === "development",
+      publicApiUrl: env.PUBLIC_API_URL,
+    }),
+    {
+      prefix: "/v1",
+    },
+  );
   void app.register(
     authRoutes({
       db: deps.db,
@@ -141,6 +148,7 @@ export function buildApp(deps: AppDeps, options: FastifyServerOptions = {}) {
       sessionSecret: env.SESSION_SECRET,
       panelOrigin,
       widgetBaseUrl: env.WIDGET_CDN_URL,
+      publicApiUrl: env.PUBLIC_API_URL,
       prices: {
         inputPerMTok: env.LLM_PRICE_INPUT_PER_MTOK,
         outputPerMTok: env.LLM_PRICE_OUTPUT_PER_MTOK,

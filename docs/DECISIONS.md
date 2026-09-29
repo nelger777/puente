@@ -106,3 +106,11 @@ Complementa `docs/SPEC.md`. Cada decisión resuelve un hueco o una contradicció
 | Temas sensibles | Reclamos, quejas y temas legales van directo a una persona. "Denuncia" no es sensible: es cómo se reporta un siniestro y debe responderse con el formulario.                                             |
 | Semilla         | Negocios en `apps/api/prisma/businesses/*.json`, validados con los mismos esquemas del panel; `SEED_BUSINESS=la-rural`. Si `SEED_ADMIN_EMAIL` ya existe, ese admin pasa a gestionar el negocio sembrado. |
 | Datos ficticios | Enlaces, oficinas, correo de avisos y color de La Rural son provisorios y están listados en `_datosFicticios` del JSON.                                                                                  |
+
+## Imagen del asistente (2026-09-29)
+
+| Tema           | Decisión                                                                                                                                                                                                                                     |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Almacenamiento | Tabla `BusinessAvatar` aparte (el chat nunca la carga); PNG, JPG o WebP de hasta 200 KB, subida desde el panel como data URL. El tipo real se verifica por los primeros bytes: SVG o archivos disfrazados se rechazan.                       |
+| Servir         | `GET /v1/widget/avatar/:key` (público como el nombre del negocio), `Cache-Control` 1 día, `?v=` cambia con cada subida, `Cross-Origin-Resource-Policy: cross-origin`, CSP `default-src 'none'`. Mismo origen que el panel: su CSP no cambia. |
+| Dónde se ve    | Cabecera del chat y vista previa de Configuración; sin imagen (o si falla) se muestra la inicial. El botón flotante mantiene el ícono de chat.                                                                                               |

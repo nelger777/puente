@@ -1,4 +1,5 @@
 import {
+  AvatarUploadSchema,
   BusinessResponseSchema,
   BusinessSettingsSchema,
   ChatResponseSchema,
@@ -29,11 +30,14 @@ import {
   updateBusiness,
   type LlmPrices,
 } from "../services/admin";
+import { avatarUpdatedAt, avatarUrl, removeAvatar, saveAvatar } from "../services/avatar";
+import type { Business } from "../generated/prisma/client";
 
 export interface AdminRoutesDeps extends EngineDeps {
   sessionSecret: string;
   panelOrigin: string;
   widgetBaseUrl: string;
+  publicApiUrl: string;
   prices: LlmPrices;
 }
 
@@ -45,15 +49,38 @@ export function adminRoutes(deps: AdminRoutesDeps) {
     app.addHook("preHandler", requireSession(db, deps.sessionSecret, deps.now));
     const adminOnly = { preHandler: requireRole("ADMIN") };
 
-    app.get("/business", async (request) => {
-      const business = await getBusiness(db, authOf(request).businessId);
-      return BusinessResponseSchema.parse(toBusinessResponse(business, deps.widgetBaseUrl));
-    });
+    async function businessResponse(business: Business) {
+      const picture = avatarUrl(
+        deps.publicApiUrl,
+        business.publicKey,
+        await avatarUpdatedAt(db, business.id),
+      );
+      return BusinessResponseSchema.parse(
+        toBusinessResponse(business, deps.widgetBaseUrl, picture),
+      );
+    }
+
+    app.get("/business", async (request) =>
+      businessResponse(await getBusiness(db, authOf(request).businessId)),
+    );
 
     app.put("/business", adminOnly, async (request) => {
       const settings = parseInput(BusinessSettingsSchema, request.body);
-      const business = await updateBusiness(db, authOf(request).businessId, settings);
-      return BusinessResponseSchema.parse(toBusinessResponse(business, deps.widgetBaseUrl));
+      return businessResponse(await updateBusiness(db, authOf(request).businessId, settings));
+    });
+
+    // The picture travels as a data URL: up to 200 KB of image, ~270 KB once encoded.
+    app.put("/business/avatar", { ...adminOnly, bodyLimit: 512 * 1024 }, async (request) => {
+      const { dataUrl } = parseInput(AvatarUploadSchema, request.body);
+      const { businessId } = authOf(request);
+      await saveAvatar(db, businessId, dataUrl);
+      return businessResponse(await getBusiness(db, businessId));
+    });
+
+    app.delete("/business/avatar", adminOnly, async (request) => {
+      const { businessId } = authOf(request);
+      await removeAvatar(db, businessId);
+      return businessResponse(await getBusiness(db, businessId));
     });
 
     app.get("/knowledge", adminOnly, async (request) =>

@@ -80,6 +80,8 @@ const app = buildApp(
       LLM_TIMEOUT_MS: 5000,
       // The panel e2e runs Vite on this origin and proxies /v1 here.
       PANEL_URL: process.env.E2E_PANEL_URL ?? "http://localhost:5181",
+      // Real address so pictures and links served by this API load in the browser.
+      PUBLIC_API_URL: `http://127.0.0.1:${port}`,
     },
     llm: ruleLlm,
     mailer: new FakeMailer(),

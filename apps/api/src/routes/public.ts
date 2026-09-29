@@ -18,9 +18,11 @@ import { resolveBusiness } from "../engine/resolve-business";
 import { ApiError, parseInput } from "../lib/errors";
 import { newId } from "../lib/ids";
 import { isInHours } from "../lib/time";
+import { avatarUpdatedAt, avatarUrl } from "../services/avatar";
 
 export interface PublicRoutesDeps extends EngineDeps {
   allowLocalhost: boolean;
+  publicApiUrl: string;
 }
 
 /**
@@ -60,6 +62,11 @@ export function publicRoutes(deps: PublicRoutesDeps) {
       const body: WidgetConfigResponse = {
         businessName: business.name,
         botName: business.botName,
+        avatarUrl: avatarUrl(
+          deps.publicApiUrl,
+          business.publicKey,
+          await avatarUpdatedAt(deps.db, business.id),
+        ),
         voice: businessVoice(business),
         brandColor: business.brandColor,
         greeting: business.greeting,
@@ -67,6 +74,25 @@ export function publicRoutes(deps: PublicRoutesDeps) {
         inHours: isInHours(businessHours(business), business.timezone, deps.now()),
       };
       return WidgetConfigResponseSchema.parse(body);
+    });
+
+    // The assistant picture, loaded by <img> on any site: public like the business name, so no
+    // origin check; only images whose real type was verified at upload are ever stored.
+    app.get("/widget/avatar/:key", async (request, reply) => {
+      const { key } = parseInput(WidgetConfigQuerySchema, request.params);
+      const business = await deps.db.business.findUnique({
+        where: { publicKey: key },
+        select: { active: true, avatar: { select: { mimeType: true, data: true } } },
+      });
+      if (!business?.active || !business.avatar) {
+        throw new ApiError(404, "not_found", "No picture");
+      }
+      return reply
+        .header("content-type", business.avatar.mimeType)
+        .header("cache-control", "public, max-age=86400")
+        .header("cross-origin-resource-policy", "cross-origin")
+        .header("content-security-policy", "default-src 'none'")
+        .send(Buffer.from(business.avatar.data));
     });
 
     app.post("/chat", async (request, reply) => {

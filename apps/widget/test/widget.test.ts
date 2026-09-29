@@ -23,6 +23,7 @@ const HANDOFF: ChatHandoff = {
 const CONFIG: WidgetConfigResponse = {
   businessName: "Óptica Mirador",
   botName: "Luz",
+  avatarUrl: null,
   voice: "tu",
   brandColor: "#1F5FBF",
   greeting: "¡Hola! Soy Luz.",
@@ -223,6 +224,25 @@ describe("ChatWidget", () => {
     await widget.send("hola");
     expect(root.textContent).toContain("Estás enviando muchos mensajes");
     expect(root.querySelector<HTMLInputElement>(".composer input")?.value).toBe("hola");
+  });
+});
+
+describe("assistant picture", () => {
+  it("shows the picture in the header and falls back to the initial if it fails", () => {
+    const { root } = mount(
+      {},
+      { ...CONFIG, avatarUrl: "https://puente.test/v1/widget/avatar/pk_x?v=1" },
+    );
+    const img = root.querySelector<HTMLImageElement>(".head .avatar img");
+    expect(img?.getAttribute("src")).toBe("https://puente.test/v1/widget/avatar/pk_x?v=1");
+    img?.dispatchEvent(new Event("error"));
+    expect(root.querySelector(".head .avatar")?.textContent).toBe("L");
+  });
+
+  it("uses the initial when there is no picture", () => {
+    const { root } = mount();
+    expect(root.querySelector(".head .avatar img")).toBeNull();
+    expect(root.querySelector(".head .avatar")?.textContent).toBe("L");
   });
 });
 

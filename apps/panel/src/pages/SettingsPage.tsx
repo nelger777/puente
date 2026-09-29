@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { api } from "../api/client";
 import { useIsAdmin } from "../auth";
+import { AvatarCard } from "../components/AvatarCard";
 import { Card, ErrorNote, Loading, PageHeader } from "../components/ui";
 import { fromForm, toForm, type FormErrors, type SettingsForm } from "../lib/settings-form";
 import { useApi } from "../lib/use-api";
@@ -113,6 +114,9 @@ export function SettingsPage() {
             : "Solo un administrador puede cambiar la configuración."
         }
       />
+      {business.data ? (
+        <AvatarCard business={business.data} isAdmin={isAdmin} onChange={business.setData} />
+      ) : null}
       <Card>
         <form
           className="form"

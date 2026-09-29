@@ -25,6 +25,7 @@ function PreviewChat({ business, session }: { business: BusinessResponse; sessio
       {
         businessName: business.name,
         botName: business.botName,
+        avatarUrl: business.avatarUrl,
         voice: business.voice,
         brandColor: business.brandColor,
         greeting: business.greeting,

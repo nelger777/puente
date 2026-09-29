@@ -73,8 +73,22 @@ export const BusinessResponseSchema = BusinessSettingsSchema.extend({
   publicKey: z.string(),
   /** Where the widget bundle is served, for the install snippet. */
   widgetScriptUrl: z.string(),
+  avatarUrl: z.string().nullable(),
 });
 export type BusinessResponse = z.infer<typeof BusinessResponseSchema>;
+
+// ---------- Assistant picture ----------
+
+export const AVATAR_MAX_BYTES = 200 * 1024;
+export const AVATAR_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
+
+/** Upload as a data URL (the panel reads the file in the browser). SVG is never accepted. */
+export const AvatarUploadSchema = z.object({
+  dataUrl: z
+    .string()
+    .max(Math.ceil((AVATAR_MAX_BYTES * 4) / 3) + 64)
+    .regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/, "Imagen PNG, JPG o WebP"),
+});
 
 // ---------- Knowledge base ----------
 

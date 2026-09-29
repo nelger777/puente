@@ -111,3 +111,27 @@ test("logging out protects the panel", async ({ page }) => {
   await page.goto("/derivaciones");
   await expect(page).toHaveURL(/\/login$/);
 });
+
+test("an admin uploads the assistant picture and sees it in the chat header", async ({ page }) => {
+  const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+    "base64",
+  );
+  await login(page);
+  await page.getByRole("link", { name: "Configuración" }).click();
+  await page
+    .locator("#avatar-file")
+    .setInputFiles({ name: "laura.png", mimeType: "image/png", buffer: png });
+  await expect(page.getByText("Imagen actualizada")).toBeVisible();
+  await expect(page.locator(".avatar-preview img")).toHaveAttribute(
+    "src",
+    /\/v1\/widget\/avatar\//,
+  );
+
+  await page.getByRole("link", { name: "Probar" }).click();
+  await expect(page.locator(".head .avatar img")).toHaveJSProperty("naturalWidth", 1);
+
+  await page.getByRole("link", { name: "Configuración" }).click();
+  await page.getByRole("button", { name: "Quitar" }).click();
+  await expect(page.getByText("Imagen quitada")).toBeVisible();
+});

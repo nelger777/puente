@@ -56,6 +56,8 @@ button, input, textarea { font: inherit; color: inherit; }
   width: 34px; height: 34px; border-radius: 50%; flex: none;
   background: rgba(255,255,255,.22); display: grid; place-items: center; font-weight: 700;
 }
+.avatar { overflow: hidden; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; background: #fff; }
 .title { flex: 1; min-width: 0; }
 .title b, .title small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .title small { font-size: 12px; opacity: .9; }

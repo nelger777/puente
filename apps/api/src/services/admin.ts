@@ -30,12 +30,17 @@ const round4 = (n: number) => Math.round(n * 10_000) / 10_000;
 
 // Every query below filters by businessId: the session's business is the only scope.
 
-export function toBusinessResponse(business: Business, widgetBaseUrl: string): BusinessResponse {
+export function toBusinessResponse(
+  business: Business,
+  widgetBaseUrl: string,
+  avatarUrl: string | null,
+): BusinessResponse {
   return {
     id: business.id,
     slug: business.slug,
     publicKey: business.publicKey,
     widgetScriptUrl: `${widgetBaseUrl.replace(/\/+$/, "")}/v1.js`,
+    avatarUrl,
     name: business.name,
     kind: business.kind,
     botName: business.botName,

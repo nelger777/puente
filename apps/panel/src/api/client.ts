@@ -75,6 +75,9 @@ export const api = {
   business: () => request<BusinessResponse>("GET", "/v1/admin/business"),
   updateBusiness: (body: BusinessSettings) =>
     request<BusinessResponse>("PUT", "/v1/admin/business", body),
+  uploadAvatar: (dataUrl: string) =>
+    request<BusinessResponse>("PUT", "/v1/admin/business/avatar", { dataUrl }),
+  removeAvatar: () => request<BusinessResponse>("DELETE", "/v1/admin/business/avatar"),
 
   knowledge: () => request<KnowledgeResponse>("GET", "/v1/admin/knowledge"),
   replaceKnowledge: (items: KnowledgeItemInput[]) =>

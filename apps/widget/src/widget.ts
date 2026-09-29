@@ -95,7 +95,7 @@ export class ChatWidget {
       h(
         "header",
         { class: "head" },
-        h("span", { class: "avatar", "aria-hidden": "true" }, initial),
+        this.renderAvatar(initial),
         h(
           "div",
           { class: "title" },
@@ -282,6 +282,20 @@ export class ChatWidget {
     // Assistant replies may carry links (quote forms, claims); the customer's text stays plain.
     if (item.kind === "bot") return h("div", { class: "msg bot" }, ...linkify(item.text));
     return h("div", { class: `msg ${item.kind}` }, item.text);
+  }
+
+  /** The assistant picture when there is one (https only), otherwise its initial. */
+  private renderAvatar(initial: string): HTMLElement {
+    const avatar = h("span", { class: "avatar", "aria-hidden": "true" });
+    const url = this.config.avatarUrl;
+    if (url && /^https?:\/\//.test(url)) {
+      const img = h("img", { src: url, alt: "", width: 34, height: 34, decoding: "async" });
+      img.addEventListener("error", () => avatar.replaceChildren(initial), { once: true });
+      avatar.append(img);
+    } else {
+      avatar.append(initial);
+    }
+    return avatar;
   }
 
   private scrollToEnd(): void {

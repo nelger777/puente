@@ -36,6 +36,16 @@ model Business {
   conversations      Conversation[]
   handoffs           Handoff[]
   users              User[]
+  avatar             BusinessAvatar?
+}
+
+/// Assistant picture shown in the widget header (kept apart so chat queries never load it).
+model BusinessAvatar {
+  businessId String   @id
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  mimeType   String // image/png | image/jpeg | image/webp (validated by magic bytes)
+  data       Bytes
+  updatedAt  DateTime @updatedAt
 }
 
 model KnowledgeItem {
