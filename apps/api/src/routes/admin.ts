@@ -98,7 +98,9 @@ export function adminRoutes(deps: AdminRoutesDeps) {
 
     app.post("/business/llm/test", adminOnly, async (request) => {
       const business = await getBusiness(db, authOf(request).businessId);
-      return LlmTestResponseSchema.parse(await testLlm(business, deps.llmFor, deps.llmTimeoutMs));
+      return LlmTestResponseSchema.parse(
+        await testLlm(business, deps.llmFor, deps.llmTimeoutMs, request.log),
+      );
     });
 
     app.get("/knowledge", adminOnly, async (request) =>

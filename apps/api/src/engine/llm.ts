@@ -187,6 +187,8 @@ export type LlmResult =
   | {
       ok: false;
       failure: LlmFailure;
+      /** Safe to log: an HTTP status or error class, never provider text or content. */
+      detail: string;
       inputTokens: number | null;
       outputTokens: number | null;
       latencyMs: number;
@@ -252,6 +254,7 @@ export async function callLlm(
     return {
       ok: false,
       failure: timeout ? "timeout" : "api_error",
+      detail: timeout ? "timeout" : err instanceof LlmTransportError ? err.message : "unknown",
       inputTokens: null,
       outputTokens: null,
       latencyMs: Date.now() - started,
@@ -265,7 +268,8 @@ export async function callLlm(
   // Cut or refused: the JSON may be incomplete or off-schema, so treat it as a failure.
   const output = reply.complete ? parseLlmOutput(reply.text) : null;
   if (!output) {
-    return { ok: false, failure: "invalid_output", inputTokens, outputTokens, latencyMs };
+    const detail = reply.complete ? "invalid json" : "incomplete reply";
+    return { ok: false, failure: "invalid_output", detail, inputTokens, outputTokens, latencyMs };
   }
   return { ok: true, output, inputTokens, outputTokens, latencyMs };
 }

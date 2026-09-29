@@ -165,6 +165,7 @@ export async function handleChat(
         conversationId: conversation.id,
         provider: route.provider,
         failure: result.failure,
+        detail: result.detail,
         latencyMs: result.latencyMs,
       },
       "llm call failed, handing off",

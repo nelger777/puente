@@ -1,4 +1,5 @@
 import type { LlmSettings, LlmTestResponse } from "@puente/shared";
+import type { FastifyBaseLogger } from "fastify";
 import type { Db } from "../db/client";
 import { callLlm } from "../engine/llm";
 import type { Business } from "../generated/prisma/client";
@@ -51,6 +52,7 @@ export async function testLlm(
   business: Business,
   llmFor: LlmRouter,
   timeoutMs: number,
+  log: FastifyBaseLogger,
 ): Promise<LlmTestResponse> {
   const route = llmFor(business);
   const result = await callLlm(route.transport, { model: route.model, timeoutMs }, TEST_SYSTEM, [
@@ -59,11 +61,16 @@ export async function testLlm(
   if (result.ok) {
     return { ok: true, message: "Conexión correcta", latencyMs: result.latencyMs };
   }
+  log.warn({ provider: route.provider, detail: result.detail }, "llm connection test failed");
   const message =
     result.failure === "timeout"
       ? "El motor no respondió a tiempo"
       : result.failure === "invalid_output"
         ? "El motor respondió, pero no en el formato esperado"
         : "El motor rechazó la llamada: revisa la clave, su cuota o que esté activa";
-  return { ok: false, message, latencyMs: result.latencyMs };
+  return {
+    ok: false,
+    message: `${message} (detalle: ${result.detail})`,
+    latencyMs: result.latencyMs,
+  };
 }
