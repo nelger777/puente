@@ -1,20 +1,20 @@
 # Pendientes
 
-Estado al 2026-09-28: **staging en línea** en https://puente.firefly.com.py (VPS compartido
+Estado al 2026-09-29: **staging en línea con La Rural Seguros** (12/12 verificaciones de `smoke.sh`; respaldo diario 03:30 UTC probado) en https://puente.firefly.com.py (VPS compartido
 `162.246.18.165`, detrás del Caddy del sistema; Puente escucha en `127.0.0.1:8090`). Los sitios
 `judiciales` y `electro` del mismo servidor siguen funcionando igual.
 
 ## Para cerrar el Hito 6 (staging con negocio de prueba)
 
-- [ ] **Negocio de prueba** (si no se hizo): `cd /opt/puente/deploy && docker compose exec api node dist/seed.js` → anotar la clave `pk_…`.
-- [ ] **Prueba completa en el VPS** (empezar la línea con un espacio para que la contraseña no quede en el historial):
+- [x] **Negocio de prueba** (si no se hizo): `cd /opt/puente/deploy && docker compose exec api node dist/seed.js` → anotar la clave `pk_…`.
+- [x] **Prueba completa en el VPS** (empezar la línea con un espacio para que la contraseña no quede en el historial):
       ` cd /opt/puente && sh deploy/smoke.sh https://puente.firefly.com.py pk_XXXX https://opticamirador.com TU_CORREO 'TU_CONTRASEÑA'` → debe terminar en `Todo en orden.`
 - [ ] **Panel → Configuración**: agregar `puente.firefly.com.py` y el dominio real a _Dominios autorizados_; WhatsApp del equipo con código de país (`595…` sin el 0); correo de avisos.
 - [ ] **Página de prueba**: `https://puente.firefly.com.py/demo/?bundle=1&src=/widget/v1.js&key=pk_XXXX`
 
 ## Operación
 
-- [ ] **Respaldos diarios** (agrega la tarea sin borrar otras):
+- [x] **Respaldos diarios** (agrega la tarea sin borrar otras):
       `(crontab -l 2>/dev/null; echo "30 3 * * * cd /opt/puente && sh deploy/backup.sh >> deploy/backup.log 2>&1") | crontab -`
 - [ ] **Copiar los respaldos fuera del VPS** (almacenamiento del proveedor, `rclone`, etc.).
 
@@ -41,7 +41,7 @@ docker compose up -d api
 
 ## La Rural Seguros (asistente Laura)
 
-- [ ] Cargar el negocio en staging: `sh deploy/deploy.sh` y luego, en `/opt/puente/deploy`: `docker compose exec -e SEED_BUSINESS=la-rural api node dist/seed.js` (el admin de `SEED_ADMIN_EMAIL` pasa a gestionar La Rural).
+- [x] Cargar el negocio en staging: `sh deploy/deploy.sh` y luego, en `/opt/puente/deploy`: `docker compose exec -e SEED_BUSINESS=la-rural api node dist/seed.js` (el admin de `SEED_ADMIN_EMAIL` pasa a gestionar La Rural).
 - [ ] **Reemplazar los datos ficticios** antes de mostrarlo a La Rural (`_datosFicticios` en `apps/api/prisma/businesses/la-rural.json`, o desde el panel): enlaces de cotización, seguros, sucursales, denuncia de siniestros y medios de pago; lista de oficinas y horarios; correo de avisos; color de marca.
 - [ ] Probar a Laura con la IA real (requiere crédito en Anthropic): preguntas de la base, pedido de datos para siniestros/pólizas y derivación.
 - [ ] Instalar el widget en `www.larural.com.py` (snippet en _Instalación_).
