@@ -1,19 +1,8 @@
-import { AVATAR_MAX_BYTES, AVATAR_MIME_TYPES, type BusinessResponse } from "@puente/shared";
+import { AVATAR_MIME_TYPES, type BusinessResponse } from "@puente/shared";
 import { useRef, useState } from "react";
 import { api } from "../api/client";
+import { AVATAR_INPUT_MAX_BYTES, AVATAR_SIDE, resizeToAvatar } from "../lib/resize-image";
 import { Card } from "./ui";
-
-function readAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () =>
-      typeof reader.result === "string"
-        ? resolve(reader.result)
-        : reject(new Error("No se pudo leer el archivo"));
-    reader.onerror = () => reject(new Error("No se pudo leer el archivo"));
-    reader.readAsDataURL(file);
-  });
-}
 
 /** Assistant picture: preview for everyone, upload/remove for admins. */
 export function AvatarCard({
@@ -49,12 +38,12 @@ export function AvatarCard({
       setMessage({ ok: false, text: "Usa una imagen PNG, JPG o WebP." });
       return;
     }
-    if (file.size > AVATAR_MAX_BYTES) {
-      setMessage({ ok: false, text: "La imagen debe pesar hasta 200 KB." });
+    if (file.size > AVATAR_INPUT_MAX_BYTES) {
+      setMessage({ ok: false, text: "La imagen debe pesar hasta 5 MB." });
       return;
     }
-    const dataUrl = await readAsDataUrl(file);
-    await run(() => api.uploadAvatar(dataUrl), "Imagen actualizada");
+    // Shrunk in the browser to a light square: visitors download ~30 KB, not the original.
+    await run(async () => api.uploadAvatar(await resizeToAvatar(file)), "Imagen actualizada");
   }
 
   const initial = (business.botName.trim()[0] ?? "A").toUpperCase();
@@ -70,8 +59,9 @@ export function AvatarCard({
         </span>
         <div className="stack">
           <p className="muted small">
-            Se ve en la cabecera del chat. Puede ser una ilustración de {business.botName} o el logo
-            del negocio: PNG, JPG o WebP, cuadrada, de hasta 200 KB. Sin imagen se muestra la
+            Se ve en el botón y en la cabecera del chat. Puede ser una ilustración de{" "}
+            {business.botName} o el logo del negocio: PNG, JPG o WebP de hasta 5 MB. Se recorta al
+            centro y se reduce sola a {AVATAR_SIDE}×{AVATAR_SIDE} px. Sin imagen se muestra la
             inicial.
           </p>
           {isAdmin ? (

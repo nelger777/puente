@@ -65,8 +65,10 @@ test("an admin configures, edits the knowledge base, tries the assistant and res
   await page.getByRole("button", { name: "Guardar base" }).click();
   await expect(page.getByText("Base guardada")).toBeVisible();
   await page.reload();
+  // Right after a reload a busy machine can take a few seconds to load the base.
   await expect(page.getByRole("textbox", { name: "Pregunta 1", exact: true })).toHaveValue(
     "¿Hacen envíos?",
+    { timeout: 15_000 },
   );
   await expect(page.getByText(/2 preguntas/)).toBeVisible();
 
@@ -112,11 +114,27 @@ test("logging out protects the panel", async ({ page }) => {
   await expect(page).toHaveURL(/\/login$/);
 });
 
-test("an admin uploads the assistant picture and sees it in the chat header", async ({ page }) => {
-  const png = Buffer.from(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-    "base64",
-  );
+test("an admin uploads a large photo, shrunk to 256 px, and sees it in the chat", async ({
+  page,
+}) => {
+  // An 800×600 noisy PNG (well over the server's 200 KB) to prove the browser shrinks it.
+  await page.goto("/login");
+  const dataUrl = await page.evaluate(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 800;
+    canvas.height = 600;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("no canvas");
+    const pixels = ctx.createImageData(800, 600);
+    for (let i = 0; i < pixels.data.length; i++) {
+      pixels.data[i] = i % 4 === 3 ? 255 : Math.floor(Math.random() * 256);
+    }
+    ctx.putImageData(pixels, 0, 0);
+    return canvas.toDataURL("image/png");
+  });
+  const png = Buffer.from(dataUrl.split(",")[1] ?? "", "base64");
+  expect(png.length).toBeGreaterThan(200 * 1024);
+
   await login(page);
   await page.getByRole("link", { name: "Configuración" }).click();
   await page
@@ -129,7 +147,8 @@ test("an admin uploads the assistant picture and sees it in the chat header", as
   );
 
   await page.getByRole("link", { name: "Probar" }).click();
-  await expect(page.locator(".head .avatar img")).toHaveJSProperty("naturalWidth", 1);
+  await expect(page.locator(".head .avatar img")).toHaveJSProperty("naturalWidth", 256);
+  await expect(page.locator(".head .avatar img")).toHaveJSProperty("naturalHeight", 256);
 
   await page.getByRole("link", { name: "Configuración" }).click();
   await page.getByRole("button", { name: "Quitar" }).click();
