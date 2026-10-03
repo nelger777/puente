@@ -33,10 +33,11 @@ sed -i "s|^ANTHROPIC_API_KEY=.*|ANTHROPIC_API_KEY=$K|" .env; unset K
 docker compose up -d api
 ```
 
-## Correo (hoy `smtp://localhost:25`: los avisos no salen; las derivaciones sí se ven en el panel)
+## Correo (hoy `smtp://localhost:25`: no salen los avisos de derivaciones, de fallas de la IA ni de uso del plan; las derivaciones sí se ven en el panel)
 
 - [ ] Crear cuenta en un proveedor SMTP (Brevo: 300 correos/día gratis; o Resend) y verificar el dominio `firefly.com.py` (registros SPF/DKIM en Hosting Paraguay).
 - [ ] En `/opt/puente/deploy/.env`: `SMTP_URL=smtps://USUARIO:CLAVE@smtp.proveedor.com:465`, `MAIL_FROM="Puente <avisos@firefly.com.py>"`, `ALERT_EMAIL=tu correo`; luego `docker compose up -d api`.
+- [ ] Verificar que lleguen los avisos de uso del plan (80 % y 100 %) al correo de avisos del negocio y a `ALERT_EMAIL`, una vez fijado un tope con `set-quota.js`.
 - [ ] Probar: pedir "hablar con una persona" en _Probar_ no envía correo (es modo prueba); hacerlo desde la página de prueba del widget.
 
 ## La Rural Seguros (asistente Laura)
