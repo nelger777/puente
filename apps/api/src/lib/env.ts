@@ -16,7 +16,7 @@ const EnvSchema = z.object({
   LLM_MODEL: z.string().default("claude-haiku-4-5-20251001"),
   LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(15000),
   /** Model used by businesses that choose Gemini with their own key (panel → Motor de IA). */
-  GEMINI_MODEL: z.string().default("gemini-3.8-flash"),
+  GEMINI_MODEL: z.string().default("gemini-flash-lite-latest"),
   /** 64 hex chars; seals per-business AI keys in the database. Empty: own keys are disabled. */
   SECRETS_KEY: z.union([z.literal(""), z.string().regex(/^[0-9a-f]{64}$/i)]).default(""),
   /** USD per million tokens, for the cost estimate (defaults: Claude Haiku 4.5). */

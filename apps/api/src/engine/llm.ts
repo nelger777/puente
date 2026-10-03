@@ -100,7 +100,7 @@ export function anthropicTransport(apiKey: string): LlmTransport {
 // ---------- Gemini (OpenAI-compatible REST endpoint) ----------
 
 export const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai";
-export const GEMINI_DEFAULT_MODEL = "gemini-3.8-flash";
+export const GEMINI_DEFAULT_MODEL = "gemini-flash-lite-latest";
 
 interface ChatCompletion {
   choices?: { message?: { content?: string | null }; finish_reason?: string | null }[];
