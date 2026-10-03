@@ -237,6 +237,12 @@ export const MetricsResponseSchema = z.object({
   }),
   pendingCount: z.int(),
   recentPending: z.array(HandoffSummarySchema),
+  /** Current month in the business timezone, whatever the range; quota null = no plan cap. */
+  usage: z.object({
+    month: z.string().regex(/^\d{4}-\d{2}$/),
+    conversations: z.int(),
+    quota: z.int().nullable(),
+  }),
 });
 export type MetricsResponse = z.infer<typeof MetricsResponseSchema>;
 

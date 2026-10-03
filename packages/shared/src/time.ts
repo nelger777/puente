@@ -53,3 +53,9 @@ export function startOfLocalDay(now: Date, timeZone: string): Date {
   const probeAsUtc = Date.UTC(probe.year, probe.month - 1, probe.day) + probe.minutes * 60_000;
   return new Date(localMidnightAsUtc - (probeAsUtc - localMidnightAsUtc));
 }
+
+/** Calendar month of `date` in `timeZone`, as "YYYY-MM" (usage is counted per local month). */
+export function localMonth(date: Date, timeZone: string): string {
+  const local = zonedParts(date, timeZone);
+  return `${local.year}-${String(local.month).padStart(2, "0")}`;
+}

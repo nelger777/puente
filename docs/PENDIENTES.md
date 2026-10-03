@@ -54,6 +54,12 @@ docker compose up -d api
 - [ ] Panel → Configuración → **Motor de IA** → "Gemini gratis (solo demo)" → pegar la clave → **Guardar motor** → **Probar conexión**.
 - [ ] Antes de atender clientes reales de La Rural, volver a "Predeterminado" (o Claude con clave propia): en el plan gratuito Google puede usar las conversaciones.
 
+## Contador mensual de conversaciones
+
+- [ ] Desplegar (`sh deploy/deploy.sh`; la migración carga el uso de los últimos 90 días) y revisar la tarjeta del mes en _Resumen_.
+- [ ] Si La Rural elige el plan mensual: `docker compose exec api node dist/set-quota.js la-rural 4000`. Con pago único y clave propia, dejarlo sin tope.
+- [ ] Cargar `ALERT_EMAIL` en `deploy/.env` para recibir los avisos de 80 % y 100 % (requiere el SMTP de la sección Correo).
+
 ## Opcional más adelante
 
 - [ ] Enlace directo al chat (página alojada) para comercios que no pueden editar su HTML.

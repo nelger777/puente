@@ -11,35 +11,39 @@ datasource db {
 }
 
 model Business {
-  id                 String          @id // biz_
-  slug               String          @unique
-  name               String
-  kind               String
-  botName            String
-  voice              String          @default("tu") // "tu" | "vos": how the assistant addresses customers
-  llmProvider        String          @default("default") // "default" (server key) | "claude" | "gemini"
-  llmApiKeySealed    String? // own AI key, AES-256-GCM under SECRETS_KEY; never returned by the API
-  llmApiKeyLast4     String? // shown in the panel to recognize the saved key
-  brandColor         String          @default("#1F5FBF")
-  whatsappNumber     String // digits only, with country code
-  notifyEmail        String
-  timezone           String          @default("America/Asuncion")
-  hours              Json // { days: number[] (0=Sunday), from: "08:00", to: "17:30" }
-  offHoursMessage    String
-  greeting           String
-  suggestions        String[]        @default([])
-  sensitiveTopics    String[]
-  allowedDomains     String[]
-  maxMessagesPerConv Int             @default(20)
-  dailyMessageCap    Int             @default(2000)
-  publicKey          String          @unique
-  active             Boolean         @default(true)
-  createdAt          DateTime        @default(now())
-  knowledge          KnowledgeItem[]
-  conversations      Conversation[]
-  handoffs           Handoff[]
-  users              User[]
-  avatar             BusinessAvatar?
+  id                       String          @id // biz_
+  slug                     String          @unique
+  name                     String
+  kind                     String
+  botName                  String
+  voice                    String          @default("tu") // "tu" | "vos": how the assistant addresses customers
+  llmProvider              String          @default("default") // "default" (server key) | "claude" | "gemini"
+  llmApiKeySealed          String? // own AI key, AES-256-GCM under SECRETS_KEY; never returned by the API
+  llmApiKeyLast4           String? // shown in the panel to recognize the saved key
+  brandColor               String          @default("#1F5FBF")
+  whatsappNumber           String // digits only, with country code
+  notifyEmail              String
+  timezone                 String          @default("America/Asuncion")
+  hours                    Json // { days: number[] (0=Sunday), from: "08:00", to: "17:30" }
+  offHoursMessage          String
+  greeting                 String
+  suggestions              String[]        @default([])
+  sensitiveTopics          String[]
+  allowedDomains           String[]
+  maxMessagesPerConv       Int             @default(20)
+  /// Conversations per month in the commercial plan; null = no cap. Set by the operator
+  /// (scripts/set-quota.ts), never from the panel. Over the cap the assistant keeps answering.
+  monthlyConversationQuota Int?
+  dailyMessageCap          Int             @default(2000)
+  publicKey                String          @unique
+  active                   Boolean         @default(true)
+  createdAt                DateTime        @default(now())
+  knowledge                KnowledgeItem[]
+  conversations            Conversation[]
+  handoffs                 Handoff[]
+  users                    User[]
+  avatar                   BusinessAvatar?
+  usageMonths              UsageMonth[]
 }
 
 /// Assistant picture shown in the widget header (kept apart so chat queries never load it).
@@ -49,6 +53,20 @@ model BusinessAvatar {
   mimeType   String // image/png | image/jpeg | image/webp (validated by magic bytes)
   data       Bytes
   updatedAt  DateTime @updatedAt
+}
+
+/// Conversations counted per business and month (in its timezone). Holds no message content,
+/// so retention keeps it: it is the billing record once the conversations are deleted.
+model UsageMonth {
+  businessId     String
+  business       Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  month          String // "2026-10"
+  conversations  Int       @default(0)
+  alert80SentAt  DateTime?
+  alert100SentAt DateTime?
+  updatedAt      DateTime  @updatedAt
+
+  @@id([businessId, month])
 }
 
 model KnowledgeItem {

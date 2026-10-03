@@ -15,6 +15,7 @@ import { publicRoutes } from "./routes/public";
 import type { Mailer } from "./services/mailer";
 import { createLlmRouter } from "./services/llm-router";
 import { Notifier } from "./services/notifications";
+import { UsageMeter } from "./services/usage";
 
 declare module "fastify" {
   interface FastifyInstance {
@@ -35,6 +36,7 @@ export type AppEnv = Pick<
   | "LLM_PRICE_OUTPUT_PER_MTOK"
   | "GEMINI_MODEL"
   | "SECRETS_KEY"
+  | "ALERT_EMAIL"
 >;
 
 export interface AppDeps {
@@ -130,6 +132,7 @@ export function buildApp(deps: AppDeps, options: FastifyServerOptions = {}) {
     llmTimeoutMs: env.LLM_TIMEOUT_MS,
     limiter: deps.limiter ?? new IpRateLimiter(30, 60_000),
     notifier: new Notifier(deps.db, deps.mailer, background, env.PANEL_URL),
+    usage: new UsageMeter(deps.db, deps.mailer, background, env.ALERT_EMAIL, env.PANEL_URL),
     internalOrigins: [env.PANEL_URL, env.PUBLIC_API_URL, env.WIDGET_CDN_URL].map(
       (u) => new URL(u).origin,
     ),

@@ -139,6 +139,7 @@ export const TEST_ENV: AppEnv = {
   LLM_PRICE_OUTPUT_PER_MTOK: 5,
   GEMINI_MODEL: "gemini-flash-lite-latest",
   SECRETS_KEY: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  ALERT_EMAIL: "ops@puente.test",
 };
 
 export function makeApp(db: Db, deps: Partial<AppDeps> = {}) {

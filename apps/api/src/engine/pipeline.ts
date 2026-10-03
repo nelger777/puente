@@ -10,6 +10,7 @@ import type { Business, Conversation } from "../generated/prisma/client";
 import { newId } from "../lib/ids";
 import { isInHours } from "../lib/time";
 import type { Notifier } from "../services/notifications";
+import type { UsageMeter } from "../services/usage";
 import { businessHours, businessVoice } from "./business";
 import { loadOrCreateConversation } from "./conversation";
 import {
@@ -50,6 +51,8 @@ export interface EngineDeps {
   llmTimeoutMs: number;
   limiter: IpRateLimiter;
   notifier: Notifier;
+  /** Monthly conversation count and plan alerts. */
+  usage: UsageMeter;
   /** Our own app origins, never allowed inside the customer's WhatsApp text. */
   internalOrigins: string[];
   now: () => Date;
@@ -109,6 +112,10 @@ export async function handleChat(
       data: { userMessageCount: { increment: 1 }, lastMessageAt: now },
     }),
   ]);
+  // A conversation counts for the monthly plan once, on its first customer message.
+  if (counted.userMessageCount === 1 && !conversation.isPreview) {
+    deps.usage.conversationStarted(business, now);
+  }
   const remainingMessages = Math.max(0, business.maxMessagesPerConv - counted.userMessageCount);
   const inHours = isInHours(businessHours(business), business.timezone, now);
 

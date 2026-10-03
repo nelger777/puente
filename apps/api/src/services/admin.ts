@@ -16,7 +16,7 @@ import { businessHours, businessVoice } from "../engine/business";
 import type { Business, Prisma } from "../generated/prisma/client";
 import { ApiError } from "../lib/errors";
 import { newId } from "../lib/ids";
-import { startOfLocalDay } from "../lib/time";
+import { localMonth, startOfLocalDay } from "../lib/time";
 import { businessProvider } from "./llm-router";
 
 export const HANDOFF_PAGE_SIZE = 25;
@@ -288,6 +288,7 @@ export async function getMetrics(
     recent,
     llmOk,
     failuresByKind,
+    usage,
   ] = await Promise.all([
     db.conversation.count({ where: conversationsInRange }),
     db.conversation.count({ where: { ...conversationsInRange, handoffs: { none: {} } } }),
@@ -317,6 +318,9 @@ export async function getMetrics(
       by: ["llmError"],
       where: { ...messagesInRange, role: "ASSISTANT", llmError: { not: null } },
       _count: { _all: true },
+    }),
+    db.usageMonth.findUnique({
+      where: { businessId_month: { businessId, month: localMonth(now, business.timezone) } },
     }),
   ]);
 
@@ -363,5 +367,10 @@ export async function getMetrics(
     },
     pendingCount,
     recentPending: recent.map(toSummary),
+    usage: {
+      month: localMonth(now, business.timezone),
+      conversations: usage?.conversations ?? 0,
+      quota: business.monthlyConversationQuota,
+    },
   };
 }

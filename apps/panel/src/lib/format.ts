@@ -35,3 +35,15 @@ export const waChatUrl = (phone: string) => `https://wa.me/${phone.replace(/\D/g
 /** Reasons that usually need a careful answer are highlighted. */
 export const isSensitiveReason = (reason: HandoffReason) =>
   reason === "SENSITIVE_TOPIC" || reason === "FRUSTRATION";
+
+const monthFormat = new Intl.DateTimeFormat("es", {
+  month: "long",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+/** "2026-10" → "octubre de 2026". */
+export const formatMonth = (month: string) => {
+  const [year = 0, mm = 1] = month.split("-").map(Number);
+  return monthFormat.format(new Date(Date.UTC(year, mm - 1, 1)));
+};

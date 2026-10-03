@@ -150,14 +150,15 @@ docker compose start api
 
 ## Operación diaria
 
-| Tarea              | Comando (en `/opt/puente/deploy`)                 |
-| ------------------ | ------------------------------------------------- |
-| Estado             | `docker compose ps`                               |
-| Logs de la API     | `docker compose logs -f --tail 100 api`           |
-| Memoria            | `docker stats --no-stream`                        |
-| Reiniciar la API   | `docker compose restart api`                      |
-| Retención manual   | `docker compose exec api node dist/retention.js`  |
-| Consola de la base | `docker compose exec db psql -U puente -d puente` |
+| Tarea              | Comando (en `/opt/puente/deploy`)                                                |
+| ------------------ | -------------------------------------------------------------------------------- |
+| Estado             | `docker compose ps`                                                              |
+| Logs de la API     | `docker compose logs -f --tail 100 api`                                          |
+| Memoria            | `docker stats --no-stream`                                                       |
+| Reiniciar la API   | `docker compose restart api`                                                     |
+| Retención manual   | `docker compose exec api node dist/retention.js`                                 |
+| Tope mensual       | `docker compose exec api node dist/set-quota.js la-rural 4000` (`none` lo quita) |
+| Consola de la base | `docker compose exec db psql -U puente -d puente`                                |
 
-Los logs no contienen mensajes de clientes ni teléfonos. Las alertas de la IA llegan a
-`ALERT_EMAIL`. Checklist de seguridad: `docs/SECURITY.md`.
+Los logs no contienen mensajes de clientes ni teléfonos. Las alertas de la IA y los avisos de
+uso del plan (80 % y 100 %) llegan a `ALERT_EMAIL`. Checklist de seguridad: `docs/SECURITY.md`.

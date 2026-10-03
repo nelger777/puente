@@ -1,10 +1,10 @@
-import { HandoffReasonSchema } from "@puente/shared";
+import { HandoffReasonSchema, type MetricsResponse } from "@puente/shared";
 import { useState } from "react";
 import { Link } from "react-router";
 import { api } from "../api/client";
 import { useAuth } from "../auth";
 import { Card, Empty, ErrorNote, Loading, PageHeader, ReasonTag } from "../components/ui";
-import { formatDate, formatNumber, formatUsd, reasonLabel } from "../lib/format";
+import { formatDate, formatMonth, formatNumber, formatUsd, reasonLabel } from "../lib/format";
 import { useApi } from "../lib/use-api";
 
 const PERIODS = [
@@ -57,6 +57,7 @@ export function SummaryPage() {
         ) : null
       ) : (
         <>
+          <PlanUsage usage={m.usage} />
           <div className="stats">
             <div className="card stat">
               <b>{formatNumber(m.userMessages)}</b>
@@ -153,5 +154,36 @@ export function SummaryPage() {
         </>
       )}
     </>
+  );
+}
+
+function PlanUsage({ usage }: { usage: MetricsResponse["usage"] }) {
+  const { conversations, quota } = usage;
+  const share = quota ? conversations / quota : 0;
+  return (
+    <Card title={`Conversaciones de ${formatMonth(usage.month)}`}>
+      {quota ? (
+        <>
+          <div className="bar">
+            <span>
+              {formatNumber(conversations)} de {formatNumber(quota)}
+            </span>
+            <div className="track" aria-hidden="true">
+              <div className="fill" style={{ width: `${Math.min(100, share * 100)}%` }} />
+            </div>
+            <b>{Math.round(share * 100)}%</b>
+          </div>
+          <p className="muted small">
+            {conversations > quota
+              ? `Se superó el plan por ${formatNumber(conversations - quota)} conversaciones. El asistente sigue respondiendo; las adicionales se facturan según lo contratado.`
+              : "Conversaciones incluidas en el plan este mes. Al llegar al 80 % y al 100 % se avisa por correo."}
+          </p>
+        </>
+      ) : (
+        <p>
+          <b>{formatNumber(conversations)}</b> conversaciones este mes. El plan no tiene tope.
+        </p>
+      )}
+    </Card>
   );
 }

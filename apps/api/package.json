@@ -15,6 +15,7 @@
     "db:seed": "prisma db seed",
     "e2e:server": "tsx test/e2e-server.ts",
     "retention": "tsx src/scripts/retention.ts",
+    "quota": "tsx src/scripts/set-quota.ts",
     "build": "node build.mjs",
     "start:prod": "node dist/server.js"
   },
