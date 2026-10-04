@@ -381,6 +381,30 @@ describe("POST /v1/chat — WhatsApp text and hours", () => {
     });
     expect((await db.handoff.findFirstOrThrow()).openedInHours).toBe(false);
   });
+
+  it("sends off-hours handoffs to the off-hours WhatsApp when there is one", async () => {
+    const hours = { days: [1, 2, 3, 4, 5], from: "08:00", to: "18:00" };
+    const withOffHours = await createBusiness(db, {
+      hours,
+      whatsappNumber: "595974590950",
+      offHoursWhatsappNumber: "595975617400",
+    });
+    const mainOnly = await createBusiness(db, { hours, whatsappNumber: "595974590950" });
+    const monday = new Date("2026-09-28T15:00:00Z"); // 12:00 in Asunción
+    const sunday = new Date("2026-09-27T15:00:00Z");
+    const waUrlAt = async (key: string, now: Date) => {
+      const { app } = makeApp(db, { now: () => now });
+      return body(await postChat(app, { key, message: "un asesor" })).handoff?.waUrl;
+    };
+
+    expect(await waUrlAt(withOffHours.publicKey, monday)).toMatch(
+      /^https:\/\/wa\.me\/595974590950\?/,
+    );
+    expect(await waUrlAt(withOffHours.publicKey, sunday)).toMatch(
+      /^https:\/\/wa\.me\/595975617400\?/,
+    );
+    expect(await waUrlAt(mainOnly.publicKey, sunday)).toMatch(/^https:\/\/wa\.me\/595974590950\?/);
+  });
 });
 
 describe("POST /v1/chat — access and limits", () => {

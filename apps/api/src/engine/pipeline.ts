@@ -11,7 +11,7 @@ import { newId } from "../lib/ids";
 import { isInHours } from "../lib/time";
 import type { Notifier } from "../services/notifications";
 import type { UsageMeter } from "../services/usage";
-import { businessHours, businessVoice } from "./business";
+import { businessHours, businessVoice, handoffNumber } from "./business";
 import { loadOrCreateConversation } from "./conversation";
 import {
   fallbackWaMessage,
@@ -268,7 +268,7 @@ async function finishWithHandoff(
       code: handoff.code,
       reason: handoff.reason,
       waMessage: handoff.waMessage,
-      waUrl: waUrl(business.whatsappNumber, waText(handoff.waMessage, handoff.code)),
+      waUrl: waUrl(handoffNumber(business, turn.inHours), waText(handoff.waMessage, handoff.code)),
       inHours: turn.inHours,
       offHoursMessage: turn.inHours ? null : business.offHoursMessage,
     },

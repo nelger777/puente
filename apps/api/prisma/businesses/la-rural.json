@@ -15,6 +15,7 @@
     "voice": "vos",
     "brandColor": "#00843D",
     "whatsappNumber": "595974590950",
+    "offHoursWhatsappNumber": "595975617400",
     "notifyEmail": "experiencia@larural.com.py",
     "timezone": "America/Asuncion",
     "hours": { "days": [1, 2, 3, 4, 5], "from": "08:00", "to": "17:30" },

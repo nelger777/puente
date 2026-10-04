@@ -155,6 +155,7 @@ describe("business settings", () => {
     voice: "vos",
     brandColor: "#0F7A6B",
     whatsappNumber: "595981222333",
+    offHoursWhatsappNumber: null,
     notifyEmail: "nuevo@opticamirador.com",
     timezone: "America/Asuncion",
     hours: { days: [1, 2, 3, 4, 5], from: "09:00", to: "17:00" },
@@ -167,6 +168,20 @@ describe("business settings", () => {
     dailyMessageCap: 500,
     active: true,
     ...overrides,
+  });
+
+  it("saves and clears the off-hours WhatsApp", async () => {
+    const { app, admin } = await setup();
+    const cookie = await loginAs(app, admin.email);
+    const put = (offHoursWhatsappNumber: string | null) =>
+      call(app, cookie, "PUT", "/v1/admin/business", settings({ offHoursWhatsappNumber }));
+
+    const saved = await put("595975617400");
+    expect(saved.statusCode).toBe(200);
+    expect(BusinessResponseSchema.parse(saved.json()).offHoursWhatsappNumber).toBe("595975617400");
+    expect((await put("0975 617400")).statusCode).toBe(400);
+    const cleared = await put(null);
+    expect(BusinessResponseSchema.parse(cleared.json()).offHoursWhatsappNumber).toBeNull();
   });
 
   it("lets an admin read and update the configuration", async () => {

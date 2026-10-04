@@ -53,6 +53,8 @@ export const BusinessSettingsSchema = z.object({
   voice: VoiceSchema,
   brandColor: BrandColorSchema,
   whatsappNumber: WhatsappNumberSchema,
+  /** Handoffs outside opening hours; null = whatsappNumber at all hours. */
+  offHoursWhatsappNumber: WhatsappNumberSchema.nullable().default(null),
   notifyEmail: z.email("Correo inválido").max(254),
   timezone: z.string().refine(isValidTimeZone, "Zona horaria inválida"),
   hours: BusinessHoursSchema,

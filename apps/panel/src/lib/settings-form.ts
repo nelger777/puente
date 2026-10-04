@@ -12,6 +12,8 @@ export interface SettingsForm {
   voice: "tu" | "vos";
   brandColor: string;
   whatsappNumber: string;
+  /** Empty = the main number at all hours. */
+  offHoursWhatsappNumber: string;
   notifyEmail: string;
   timezone: string;
   days: number[];
@@ -35,6 +37,9 @@ const lines = (text: string) =>
     .map((s) => s.trim())
     .filter(Boolean);
 
+/** Phone as typed ("+595 975 617400") → digits only. */
+const digits = (phone: string) => phone.replace(/[\s+()-]/g, "");
+
 export function toForm(b: BusinessResponse): SettingsForm {
   return {
     name: b.name,
@@ -43,6 +48,7 @@ export function toForm(b: BusinessResponse): SettingsForm {
     voice: b.voice,
     brandColor: b.brandColor,
     whatsappNumber: b.whatsappNumber,
+    offHoursWhatsappNumber: b.offHoursWhatsappNumber ?? "",
     notifyEmail: b.notifyEmail,
     timezone: b.timezone,
     days: b.hours.days,
@@ -76,7 +82,8 @@ export function fromForm(
     botName: form.botName,
     voice: form.voice,
     brandColor: form.brandColor.trim(),
-    whatsappNumber: form.whatsappNumber.replace(/[\s+()-]/g, ""),
+    whatsappNumber: digits(form.whatsappNumber),
+    offHoursWhatsappNumber: digits(form.offHoursWhatsappNumber) || null,
     notifyEmail: form.notifyEmail.trim(),
     timezone: form.timezone.trim(),
     hours: { days: [...form.days].sort((a, b) => a - b), from: form.from, to: form.to },

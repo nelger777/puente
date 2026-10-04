@@ -22,6 +22,8 @@ model Business {
   llmApiKeyLast4           String? // shown in the panel to recognize the saved key
   brandColor               String          @default("#1F5FBF")
   whatsappNumber           String // digits only, with country code
+  /// Handoffs outside opening hours go here; null = whatsappNumber at all hours.
+  offHoursWhatsappNumber   String?
   notifyEmail              String
   timezone                 String          @default("America/Asuncion")
   hours                    Json // { days: number[] (0=Sunday), from: "08:00", to: "17:30" }

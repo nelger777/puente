@@ -15,6 +15,7 @@ const BUSINESS: BusinessResponse = {
   voice: "tu",
   brandColor: "#1F5FBF",
   whatsappNumber: "595981000000",
+  offHoursWhatsappNumber: null,
   notifyEmail: "equipo@opticamirador.com",
   timezone: "America/Asuncion",
   hours: { days: [1, 2, 3, 4, 5, 6], from: "08:00", to: "18:00" },
@@ -51,6 +52,20 @@ describe("settings form", () => {
     if (!result.ok) throw new Error("expected valid");
     expect(result.settings.sensitiveTopics).toEqual(["reclamo", "garantía", "reembolso"]);
     expect(result.settings.whatsappNumber).toBe("595981000000");
+  });
+
+  it("treats an empty off-hours WhatsApp as not set and cleans a typed one", () => {
+    const empty = fromForm(toForm(BUSINESS));
+    if (!empty.ok) throw new Error("expected valid");
+    expect(empty.settings.offHoursWhatsappNumber).toBeNull();
+
+    const typed = fromForm({ ...toForm(BUSINESS), offHoursWhatsappNumber: "+595 975 617400" });
+    if (!typed.ok) throw new Error("expected valid");
+    expect(typed.settings.offHoursWhatsappNumber).toBe("595975617400");
+
+    const invalid = fromForm({ ...toForm(BUSINESS), offHoursWhatsappNumber: "0975" });
+    if (invalid.ok) throw new Error("expected errors");
+    expect(invalid.errors.offHoursWhatsappNumber).toBe("Solo dígitos, con código de país");
   });
 
   it("points errors to the right fields", () => {

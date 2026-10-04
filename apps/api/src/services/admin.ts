@@ -48,6 +48,7 @@ export function toBusinessResponse(
     voice: businessVoice(business),
     brandColor: business.brandColor,
     whatsappNumber: business.whatsappNumber,
+    offHoursWhatsappNumber: business.offHoursWhatsappNumber,
     notifyEmail: business.notifyEmail,
     timezone: business.timezone,
     hours: businessHours(business),

@@ -97,15 +97,15 @@ Complementa `docs/SPEC.md`. Cada decisión resuelve un hueco o una contradicció
 
 ## Primer cliente: La Rural Seguros (2026-09-29)
 
-| Tema            | Decisión                                                                                                                                                                                                 |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Alcance         | Fase 1 solo web. El bot dentro de WhatsApp (API de WhatsApp Business) y la integración con Joaju (CRM) quedan para fases posteriores.                                                                    |
-| Trato           | Campo `Business.voice` (`tu` / `vos`): regla en el prompt, textos del widget y la respuesta fija que cambia. La Rural usa `vos`.                                                                         |
-| Enlaces         | El widget convierte URLs de las respuestas del asistente en enlaces (solo http/https, pestaña nueva, `noopener`); los mensajes del cliente quedan como texto.                                            |
-| Derivación      | Al WhatsApp corporativo de experiencia (+595 974 590950), que va directo a una persona; el principal (+595 975 617400) tiene menú de bienvenida y se menciona en la base.                                |
-| Temas sensibles | Reclamos, quejas y temas legales van directo a una persona. "Denuncia" no es sensible: es cómo se reporta un siniestro y debe responderse con el formulario.                                             |
-| Semilla         | Negocios en `apps/api/prisma/businesses/*.json`, validados con los mismos esquemas del panel; `SEED_BUSINESS=la-rural`. Si `SEED_ADMIN_EMAIL` ya existe, ese admin pasa a gestionar el negocio sembrado. |
-| Datos ficticios | Enlaces, oficinas, correo de avisos y color de La Rural son provisorios y están listados en `_datosFicticios` del JSON.                                                                                  |
+| Tema            | Decisión                                                                                                                                                                                                                     |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Alcance         | Fase 1 solo web. El bot dentro de WhatsApp (API de WhatsApp Business) y la integración con Joaju (CRM) quedan para fases posteriores.                                                                                        |
+| Trato           | Campo `Business.voice` (`tu` / `vos`): regla en el prompt, textos del widget y la respuesta fija que cambia. La Rural usa `vos`.                                                                                             |
+| Enlaces         | El widget convierte URLs de las respuestas del asistente en enlaces (solo http/https, pestaña nueva, `noopener`); los mensajes del cliente quedan como texto.                                                                |
+| Derivación      | En horario, al WhatsApp corporativo de experiencia (+595 974 590950), que va directo a una persona. Fuera de horario, al principal con CRM (+595 975 617400), que también tiene menú de bienvenida y se menciona en la base. |
+| Temas sensibles | Reclamos, quejas y temas legales van directo a una persona. "Denuncia" no es sensible: es cómo se reporta un siniestro y debe responderse con el formulario.                                                                 |
+| Semilla         | Negocios en `apps/api/prisma/businesses/*.json`, validados con los mismos esquemas del panel; `SEED_BUSINESS=la-rural`. Si `SEED_ADMIN_EMAIL` ya existe, ese admin pasa a gestionar el negocio sembrado.                     |
+| Datos ficticios | Enlaces, oficinas, correo de avisos y color de La Rural son provisorios y están listados en `_datosFicticios` del JSON.                                                                                                      |
 
 ## Imagen del asistente (2026-09-29)
 
@@ -136,3 +136,10 @@ Complementa `docs/SPEC.md`. Cada decisión resuelve un hueco o una contradicció
 | Al superarlo | El asistente sigue respondiendo: las conversaciones adicionales se facturan según el contrato.                                                                                                                                                              |
 | Avisos       | Un correo al 80 % y otro al 100 %, como máximo uno de cada uno por mes, al correo de avisos del negocio y a `ALERT_EMAIL`. Llegar al 100 % da por enviado el 80 %. Solo números, sin mensajes ni teléfonos.                                                 |
 | Panel        | El Resumen muestra las conversaciones del mes en curso contra el tope, sin importar el período elegido.                                                                                                                                                     |
+
+## WhatsApp fuera de horario (2026-10-03)
+
+| Tema  | Decisión                                                                                                                                                                                                                                                                     |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Campo | `Business.offHoursWhatsappNumber`, opcional y editable desde Configuración. Vacío: el número del equipo a toda hora.                                                                                                                                                         |
+| Regla | El enlace `wa.me` se arma en cada respuesta con derivación: dentro del horario del negocio va al número del equipo y fuera de horario al de fuera de horario. Una derivación pendiente que se retoma después del cierre ya apunta al número nuevo. Vale también en "Probar". |

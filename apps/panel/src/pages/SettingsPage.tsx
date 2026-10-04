@@ -150,6 +150,14 @@ export function SettingsPage() {
           {field("whatsappNumber", "WhatsApp del equipo", text("whatsappNumber", "tel"), {
             help: "Con código de país, solo dígitos (ej.: 595981123456)",
           })}
+          {field(
+            "offHoursWhatsappNumber",
+            "WhatsApp fuera de horario (opcional)",
+            text("offHoursWhatsappNumber", "tel"),
+            {
+              help: "Recibe las derivaciones fuera del horario de atención. Vacío: se usa el del equipo.",
+            },
+          )}
           {field("notifyEmail", "Correo para avisos de derivación", text("notifyEmail", "email"))}
           {field("timezone", "Zona horaria", text("timezone"), { help: "Ej.: America/Asuncion" })}
           <div className="field">

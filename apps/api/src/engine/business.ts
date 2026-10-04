@@ -10,3 +10,13 @@ export function businessHours(business: Pick<Business, "hours">): BusinessHours 
 export function businessVoice(business: Pick<Business, "voice">): Voice {
   return VoiceSchema.catch("tu").parse(business.voice);
 }
+
+/** WhatsApp number for a handoff: the off-hours one outside opening hours, when configured. */
+export function handoffNumber(
+  business: Pick<Business, "whatsappNumber" | "offHoursWhatsappNumber">,
+  inHours: boolean,
+): string {
+  return inHours
+    ? business.whatsappNumber
+    : (business.offHoursWhatsappNumber ?? business.whatsappNumber);
+}
