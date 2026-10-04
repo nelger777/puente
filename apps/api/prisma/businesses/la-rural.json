@@ -3,7 +3,7 @@
   "devPublicKey": "pk_demo_larural",
   "devAdminEmail": "admin@larural.local",
   "_datosFicticios": [
-    "Todos los enlaces https://www.larural.com.py/... (cotización de automóvil, seguros, sucursales, denuncia de siniestros, medios de pago)",
+    "Los enlaces https://www.larural.com.py/... (cotización de automóvil, seguros, sucursales, medios de pago). Confirmado por La Rural: denuncia de siniestros de automóviles (/siniestros/denuncia-automoviles)",
     "Lista de oficinas, direcciones y horarios de sucursales",
     "notifyEmail (experiencia@larural.com.py)",
     "brandColor (#00843D)"
@@ -58,11 +58,11 @@
     },
     {
       "question": "Tuve un accidente, me chocaron o choqué: ¿qué hago y cómo hago la denuncia?",
-      "answer": "Primero, priorizá tu seguridad y la de las demás personas. Si necesitás asistencia inmediata con el vehículo, llamá al 021 617 4000 (Asistencia 24 hs.). Para denunciar el siniestro, completá el formulario online y adjuntá la documentación: https://www.larural.com.py/siniestros/denuncia"
+      "answer": "Primero, priorizá tu seguridad y la de las demás personas. Si necesitás asistencia inmediata con el vehículo, llamá al 021 617 4000 (Asistencia 24 hs.). Para denunciar el siniestro, completá el formulario online y adjuntá la documentación: https://www.larural.com.py/siniestros/denuncia-automoviles"
     },
     {
       "question": "¿Qué documentos necesito para denunciar un siniestro?",
-      "answer": "Durante la denuncia te pueden pedir: fotos del vehículo y de los daños, Cédula Verde, Habilitación, Registro de conducir y otros documentos según el caso. Iniciá la denuncia aquí: https://www.larural.com.py/siniestros/denuncia"
+      "answer": "Durante la denuncia te pueden pedir: fotos del vehículo y de los daños, Cédula Verde, Habilitación, Registro de conducir y otros documentos según el caso. Iniciá la denuncia aquí: https://www.larural.com.py/siniestros/denuncia-automoviles"
     },
     {
       "question": "¿Cuál es el estado de mi siniestro? ¿Ya está autorizado mi vehículo para ingresar al taller? ¿Dónde tengo que llevarlo a reparar?",
