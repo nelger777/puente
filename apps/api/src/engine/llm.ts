@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { LlmOutput } from "@puente/shared";
-import { LLM_OUTPUT_JSON_SCHEMA, parseLlmOutput } from "./llm-output";
+import { LLM_OUTPUT_JSON_SCHEMA, parseLlmOutputDetailed } from "./llm-output";
 
 // ---------- Provider-neutral contract ----------
 
@@ -266,10 +266,14 @@ export async function callLlm(
   const latencyMs = Date.now() - started;
   const { inputTokens, outputTokens } = reply;
   // Cut or refused: the JSON may be incomplete or off-schema, so treat it as a failure.
-  const output = reply.complete ? parseLlmOutput(reply.text) : null;
-  if (!output) {
-    const detail = reply.complete ? "invalid json" : "incomplete reply";
+  if (!reply.complete) {
+    const detail = "incomplete reply";
     return { ok: false, failure: "invalid_output", detail, inputTokens, outputTokens, latencyMs };
   }
-  return { ok: true, output, inputTokens, outputTokens, latencyMs };
+  const parsed = parseLlmOutputDetailed(reply.text);
+  if (!parsed.ok) {
+    const detail = parsed.issue;
+    return { ok: false, failure: "invalid_output", detail, inputTokens, outputTokens, latencyMs };
+  }
+  return { ok: true, output: parsed.output, inputTokens, outputTokens, latencyMs };
 }

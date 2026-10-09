@@ -143,3 +143,11 @@ Complementa `docs/SPEC.md`. Cada decisión resuelve un hueco o una contradicció
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Campo | `Business.offHoursWhatsappNumber`, opcional y editable desde Configuración. Vacío: el número del equipo a toda hora.                                                                                                                                                         |
 | Regla | El enlace `wa.me` se arma en cada respuesta con derivación: dentro del horario del negocio va al número del equipo y fuera de horario al de fuera de horario. Una derivación pendiente que se retoma después del cierre ya apunta al número nuevo. Vale también en "Probar". |
+
+## Sugerencias de la IA (2026-10-09)
+
+| Tema    | Decisión                                                                                                                                                                                                                               |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Límites | Hasta 3 sugerencias (`quick_replies`) de hasta 80 caracteres. El prompt lo indica.                                                                                                                                                     |
+| Exceso  | Las sugerencias sobrantes, vacías o largas se descartan antes de validar con Zod; la respuesta no se pierde por ellas. Antes, 4 sugerencias ante un saludo hacían derivar con "IA no disponible" (~21 % de las respuestas en staging). |
+| Logs    | Una salida inválida registra el campo y el código de Zod (p. ej. `reply: too_small`), nunca contenido.                                                                                                                                 |

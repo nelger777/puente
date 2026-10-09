@@ -131,6 +131,18 @@ describe("POST /v1/chat — resolved by the assistant", () => {
     );
     expect(second.conversationId).not.toBe(first.conversationId);
   });
+
+  it("answers a greeting even when the model offers too many quick replies", async () => {
+    const business = await createBusiness(db);
+    const menu = ["Cotizar mi seguro", "Tuve un accidente", "Mi póliza", "Medios de pago"];
+    const { app } = makeApp(db, { llm: new FakeLlm([answer("¡Hola! ¿En qué te ayudo?", menu)]) });
+    const res = body(await postChat(app, { key: business.publicKey, message: "Hola" }));
+    expect(res).toMatchObject({
+      reply: "¡Hola! ¿En qué te ayudo?",
+      handoff: null,
+      quickReplies: menu.slice(0, 3),
+    });
+  });
 });
 
 describe("POST /v1/chat — handoff reasons", () => {

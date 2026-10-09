@@ -6,7 +6,7 @@ import {
   waText,
   waUrl,
 } from "../src/engine/handoff";
-import { parseLlmOutput } from "../src/engine/llm-output";
+import { parseLlmOutput, parseLlmOutputDetailed } from "../src/engine/llm-output";
 import { findSensitiveTopic, preRules } from "../src/engine/pre-rules";
 import { buildHistory, buildSystemPrompt } from "../src/engine/prompt";
 import { allowedOriginHost } from "../src/engine/resolve-business";
@@ -71,9 +71,33 @@ describe("parseLlmOutput", () => {
     expect(
       parseLlmOutput(JSON.stringify({ ...valid, reason: "limite", handoff: true })),
     ).toBeNull();
+  });
+
+  it("keeps a good answer when the quick replies are too many or too long", () => {
+    const many = parseLlmOutput(
+      JSON.stringify({
+        ...valid,
+        quick_replies: ["Cotizar", "Siniestros", "Pólizas", "Pagos", "Oficinas"],
+      }),
+    );
+    expect(many?.reply).toBe("Abrimos a las 8.");
+    expect(many?.quick_replies).toEqual(["Cotizar", "Siniestros", "Pólizas"]);
+
+    const long = parseLlmOutput(
+      JSON.stringify({ ...valid, quick_replies: ["x".repeat(81), " ", "y".repeat(80), "Pagos"] }),
+    );
+    expect(long?.quick_replies).toEqual(["y".repeat(80), "Pagos"]);
+  });
+
+  it("names the field that broke the schema, without content", () => {
+    expect(parseLlmOutputDetailed("no es json")).toEqual({ ok: false, issue: "invalid json" });
+    expect(parseLlmOutputDetailed(JSON.stringify({ ...valid, reply: "" }))).toEqual({
+      ok: false,
+      issue: "reply: too_small",
+    });
     expect(
-      parseLlmOutput(JSON.stringify({ ...valid, quick_replies: ["a", "b", "c", "d"] })),
-    ).toBeNull();
+      parseLlmOutputDetailed(JSON.stringify({ ...valid, summary: "secreto ".repeat(100) })),
+    ).toEqual({ ok: false, issue: "summary: too_big" });
   });
 
   it("treats an empty wa_message as missing", () => {
