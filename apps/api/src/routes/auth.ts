@@ -2,7 +2,7 @@ import { LoginRequestSchema, MeResponseSchema, type MeResponse } from "@puente/s
 import type { FastifyInstance, FastifyReply } from "fastify";
 import type { Db } from "../db/client";
 import type { IpRateLimiter } from "../engine/rate-limits";
-import { authOf, requirePanelOrigin, requireSession } from "../lib/auth-guard";
+import { authOf, requirePanelOrigin, requireSession, type AuthContext } from "../lib/auth-guard";
 import { ApiError, parseInput } from "../lib/errors";
 import { login, logout, SESSION_COOKIE, SESSION_TTL_MS } from "../services/auth";
 
@@ -12,6 +12,18 @@ export interface AuthRoutesDeps {
   panelOrigin: string;
   limiter: IpRateLimiter;
   now: () => Date;
+}
+
+export function meResponse(auth: Omit<AuthContext, "sessionId" | "sessionToken">): MeResponse {
+  return MeResponseSchema.parse({
+    user: {
+      id: auth.userId,
+      email: auth.email,
+      role: auth.role,
+      platformAdmin: auth.platformAdmin,
+    },
+    business: { id: auth.businessId, name: auth.businessName },
+  });
 }
 
 function setSessionCookie(reply: FastifyReply, token: string): void {
@@ -40,11 +52,14 @@ export function authRoutes(deps: AuthRoutesDeps) {
         where: { id: user.businessId },
         select: { id: true, name: true },
       });
-      const body: MeResponse = {
-        user: { id: user.id, email: user.email, role: user.role },
-        business,
-      };
-      return MeResponseSchema.parse(body);
+      return meResponse({
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        platformAdmin: user.isPlatformAdmin,
+        businessId: business.id,
+        businessName: business.name,
+      });
     });
 
     app.post("/auth/logout", { preHandler: session }, async (request, reply) => {
@@ -53,14 +68,7 @@ export function authRoutes(deps: AuthRoutesDeps) {
       return reply.code(204).send();
     });
 
-    app.get("/auth/me", { preHandler: session }, (request) => {
-      const auth = authOf(request);
-      const body: MeResponse = {
-        user: { id: auth.userId, email: auth.email, role: auth.role },
-        business: { id: auth.businessId, name: auth.businessName },
-      };
-      return MeResponseSchema.parse(body);
-    });
+    app.get("/auth/me", { preHandler: session }, (request) => meResponse(authOf(request)));
 
     done();
   };

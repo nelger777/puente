@@ -46,6 +46,7 @@ model Business {
   users                    User[]
   avatar                   BusinessAvatar?
   usageMonths              UsageMonth[]
+  actingSessions           Session[]       @relation("ActingBusiness")
 }
 
 /// Assistant picture shown in the widget header (kept apart so chat queries never load it).
@@ -186,6 +187,11 @@ model User {
   email            String    @unique
   passwordHash     String // argon2id
   role             UserRole  @default(AGENT)
+  /// Platform operator: can list and create businesses and enter any of them as ADMIN.
+  /// Set only with the operator command (scripts/set-platform-admin.ts), never from the panel.
+  isPlatformAdmin  Boolean   @default(false)
+  /// Disabled users cannot log in; disabling one also ends their sessions.
+  active           Boolean   @default(true)
   failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
   createdAt        DateTime  @default(now())
@@ -198,12 +204,15 @@ enum UserRole {
 }
 
 model Session {
-  id        String   @id // ses_
-  tokenHash String   @unique // hash of the httpOnly cookie token
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id               String    @id // ses_
+  tokenHash        String    @unique // hash of the httpOnly cookie token
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Business a platform admin entered from the panel; null = the user's own business.
+  actingBusinessId String?
+  actingBusiness   Business? @relation("ActingBusiness", fields: [actingBusinessId], references: [id], onDelete: SetNull)
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
 
   @@index([userId])
   @@index([expiresAt])

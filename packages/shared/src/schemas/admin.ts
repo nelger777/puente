@@ -14,17 +14,60 @@ import { MAX_MESSAGE_LENGTH } from "./widget";
 export const UserRoleSchema = z.enum(["ADMIN", "AGENT"]);
 export type UserRole = z.infer<typeof UserRoleSchema>;
 
+export const EmailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .pipe(z.email("Correo inválido").max(254));
+
 export const LoginRequestSchema = z.object({
-  email: z.string().trim().toLowerCase().pipe(z.email().max(254)),
+  email: EmailSchema,
   password: z.string().min(1).max(200),
 });
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 
 export const MeResponseSchema = z.object({
-  user: z.object({ id: z.string(), email: z.string(), role: UserRoleSchema }),
+  user: z.object({
+    id: z.string(),
+    email: z.string(),
+    role: UserRoleSchema,
+    /** Platform operator: may list, create and enter every business. */
+    platformAdmin: z.boolean(),
+  }),
   business: z.object({ id: z.string(), name: z.string() }),
 });
 export type MeResponse = z.infer<typeof MeResponseSchema>;
+
+// ---------- Users of a business ----------
+
+export const UserSummarySchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  role: UserRoleSchema,
+  active: z.boolean(),
+  createdAt: z.string(),
+});
+export type UserSummary = z.infer<typeof UserSummarySchema>;
+
+export const UserListResponseSchema = z.object({ users: z.array(UserSummarySchema) });
+export type UserListResponse = z.infer<typeof UserListResponseSchema>;
+
+export const UserCreateSchema = z.object({ email: EmailSchema, role: UserRoleSchema });
+export type UserCreate = z.infer<typeof UserCreateSchema>;
+
+export const UserPatchSchema = z
+  .object({ role: UserRoleSchema.optional(), active: z.boolean().optional() })
+  .refine((p) => p.role !== undefined || p.active !== undefined, { message: "Nada que cambiar" });
+export type UserPatch = z.infer<typeof UserPatchSchema>;
+
+export const UserIdParamsSchema = z.object({ id: z.string().regex(/^usr_[a-z0-9]+$/) });
+
+/** The generated password travels once, in this response; only its hash is stored. */
+export const UserWithPasswordSchema = z.object({
+  user: UserSummarySchema,
+  password: z.string(),
+});
+export type UserWithPassword = z.infer<typeof UserWithPasswordSchema>;
 
 // ---------- Business settings ----------
 
@@ -37,7 +80,7 @@ export function isValidTimeZone(timeZone: string): boolean {
   }
 }
 
-const DomainSchema = z
+export const DomainSchema = z
   .string()
   .trim()
   .toLowerCase()

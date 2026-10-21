@@ -1,5 +1,7 @@
 import type {
   ApiErrorResponse,
+  BusinessCreate,
+  BusinessCreateResponse,
   BusinessResponse,
   BusinessSettings,
   ChatResponse,
@@ -13,7 +15,13 @@ import type {
   LoginRequest,
   MeResponse,
   MetricsResponse,
+  PlatformBusinessList,
   PreviewChatRequest,
+  UserCreate,
+  UserListResponse,
+  UserPatch,
+  UserSummary,
+  UserWithPassword,
 } from "@puente/shared";
 
 export class ApiError extends Error {
@@ -97,6 +105,19 @@ export const api = {
 
   metrics: (from?: string, to?: string) =>
     request<MetricsResponse>("GET", `/v1/admin/metrics${qs({ from, to })}`),
+
+  users: () => request<UserListResponse>("GET", "/v1/admin/users"),
+  createUser: (body: UserCreate) => request<UserWithPassword>("POST", "/v1/admin/users", body),
+  updateUser: (id: string, body: UserPatch) =>
+    request<UserSummary>("PATCH", `/v1/admin/users/${encodeURIComponent(id)}`, body),
+  resetPassword: (id: string) =>
+    request<UserWithPassword>("POST", `/v1/admin/users/${encodeURIComponent(id)}/reset-password`),
+
+  platformBusinesses: () => request<PlatformBusinessList>("GET", "/v1/platform/businesses"),
+  createBusiness: (body: BusinessCreate) =>
+    request<BusinessCreateResponse>("POST", "/v1/platform/businesses", body),
+  actAs: (businessId: string | null) =>
+    request<MeResponse>("POST", "/v1/platform/act-as", { businessId }),
 
   previewChat: (body: Omit<PreviewChatRequest, "visitorId"> & { visitorId?: string }) =>
     request<ChatResponse>("POST", "/v1/admin/preview-chat", body),

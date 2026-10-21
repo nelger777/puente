@@ -15,6 +15,8 @@ interface AuthState {
   checking: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Platform admin only: work on another business (null = back to the own one). */
+  actAs: (businessId: string | null) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -43,7 +45,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMe(null);
   }, []);
 
-  const value = useMemo(() => ({ me, checking, login, logout }), [me, checking, login, logout]);
+  const actAs = useCallback(async (businessId: string | null) => {
+    setMe(await api.actAs(businessId));
+  }, []);
+
+  const value = useMemo(
+    () => ({ me, checking, login, logout, actAs }),
+    [me, checking, login, logout, actAs],
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
@@ -55,4 +64,8 @@ export function useAuth(): AuthState {
 
 export function useIsAdmin(): boolean {
   return useAuth().me?.user.role === "ADMIN";
+}
+
+export function useIsPlatformAdmin(): boolean {
+  return useAuth().me?.user.platformAdmin === true;
 }

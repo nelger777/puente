@@ -15,6 +15,12 @@ import {
   MetricsQuerySchema,
   MetricsResponseSchema,
   PreviewChatRequestSchema,
+  UserCreateSchema,
+  UserIdParamsSchema,
+  UserListResponseSchema,
+  UserPatchSchema,
+  UserSummarySchema,
+  UserWithPasswordSchema,
 } from "@puente/shared";
 import type { FastifyInstance } from "fastify";
 import { handleChat, type EngineDeps } from "../engine/pipeline";
@@ -36,6 +42,7 @@ import { avatarUpdatedAt, avatarUrl, removeAvatar, saveAvatar } from "../service
 import type { Business } from "../generated/prisma/client";
 import type { SecretBox } from "../lib/secrets";
 import { testLlm, updateLlmSettings } from "../services/llm-settings";
+import { createUser, listUsers, resetPassword, updateUser } from "../services/users";
 
 export interface AdminRoutesDeps extends EngineDeps {
   sessionSecret: string;
@@ -141,6 +148,32 @@ export function adminRoutes(deps: AdminRoutesDeps) {
       const business = await getBusiness(db, authOf(request).businessId);
       return MetricsResponseSchema.parse(
         await getMetrics(db, business, from, to, deps.now(), deps.prices),
+      );
+    });
+
+    app.get("/users", adminOnly, async (request) =>
+      UserListResponseSchema.parse(await listUsers(db, authOf(request).businessId)),
+    );
+
+    // The generated password is in this response only; the panel shows it once.
+    app.post("/users", adminOnly, async (request, reply) => {
+      const input = parseInput(UserCreateSchema, request.body);
+      const created = await createUser(db, authOf(request).businessId, input);
+      return reply.code(201).send(UserWithPasswordSchema.parse(created));
+    });
+
+    app.patch("/users/:id", adminOnly, async (request) => {
+      const { id } = parseInput(UserIdParamsSchema, request.params);
+      const patch = parseInput(UserPatchSchema, request.body);
+      const auth = authOf(request);
+      return UserSummarySchema.parse(await updateUser(db, auth.businessId, auth.userId, id, patch));
+    });
+
+    app.post("/users/:id/reset-password", adminOnly, async (request) => {
+      const { id } = parseInput(UserIdParamsSchema, request.params);
+      const auth = authOf(request);
+      return UserWithPasswordSchema.parse(
+        await resetPassword(db, auth.businessId, auth.userId, id),
       );
     });
 

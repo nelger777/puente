@@ -12,6 +12,7 @@ await build({
     seed: "prisma/seed.ts",
     retention: "src/scripts/retention.ts",
     "set-quota": "src/scripts/set-quota.ts",
+    "set-platform-admin": "src/scripts/set-platform-admin.ts",
   },
   outdir: "dist",
   bundle: true,

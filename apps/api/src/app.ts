@@ -11,6 +11,7 @@ import { ApiError } from "./lib/errors";
 import { SecretBox } from "./lib/secrets";
 import { adminRoutes } from "./routes/admin";
 import { authRoutes } from "./routes/auth";
+import { platformRoutes } from "./routes/platform";
 import { publicRoutes } from "./routes/public";
 import type { Mailer } from "./services/mailer";
 import { createLlmRouter } from "./services/llm-router";
@@ -175,6 +176,15 @@ export function buildApp(deps: AppDeps, options: FastifyServerOptions = {}) {
       },
     }),
     { prefix: "/v1/admin" },
+  );
+  void app.register(
+    platformRoutes({
+      db: deps.db,
+      sessionSecret: env.SESSION_SECRET,
+      panelOrigin,
+      now: engine.now,
+    }),
+    { prefix: "/v1/platform" },
   );
 
   return app;

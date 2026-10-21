@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router";
-import { AuthProvider, useAuth, useIsAdmin } from "./auth";
+import { AuthProvider, useAuth, useIsAdmin, useIsPlatformAdmin } from "./auth";
 import { Layout } from "./components/Layout";
 import { Loading } from "./components/ui";
+import { BusinessesPage } from "./pages/BusinessesPage";
 import { CasePage } from "./pages/CasePage";
 import { HandoffsPage } from "./pages/HandoffsPage";
 import { InstallPage } from "./pages/InstallPage";
@@ -11,6 +12,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { SummaryPage } from "./pages/SummaryPage";
 import { TryPage } from "./pages/TryPage";
+import { UsersPage } from "./pages/UsersPage";
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { me, checking } = useAuth();
@@ -22,6 +24,10 @@ function RequireAuth({ children }: { children: ReactNode }) {
 
 function AdminOnly({ children }: { children: ReactNode }) {
   return useIsAdmin() ? children : <Navigate to="/" replace />;
+}
+
+function PlatformOnly({ children }: { children: ReactNode }) {
+  return useIsPlatformAdmin() ? children : <Navigate to="/" replace />;
 }
 
 export function App() {
@@ -49,7 +55,23 @@ export function App() {
               </AdminOnly>
             }
           />
+          <Route
+            path="usuarios"
+            element={
+              <AdminOnly>
+                <UsersPage />
+              </AdminOnly>
+            }
+          />
           <Route path="instalacion" element={<InstallPage />} />
+          <Route
+            path="empresas"
+            element={
+              <PlatformOnly>
+                <BusinessesPage />
+              </PlatformOnly>
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

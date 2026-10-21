@@ -8,6 +8,7 @@ import {
   HandoffListResponseSchema,
   KnowledgeResponseSchema,
   MetricsResponseSchema,
+  UserListResponseSchema,
 } from "@puente/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -219,5 +220,28 @@ describe("panel API", () => {
   it("scopes the session to its own business", async () => {
     const me = (await panel(a.cookie, "GET", "/v1/auth/me")).json<{ business: { id: string } }>();
     expect(me.business.id).toBe(a.businessId);
+  });
+
+  it("does not let B enter A, list A's users or change them", async () => {
+    const entered = await panel(b.cookie, "POST", "/v1/platform/act-as", {
+      businessId: a.businessId,
+    });
+    expect(entered.statusCode).toBe(403);
+
+    const users = UserListResponseSchema.parse(
+      (await panel(b.cookie, "GET", "/v1/admin/users")).json(),
+    );
+    const aUsers = await db.user.findMany({ where: { businessId: a.businessId } });
+    expect(users.users.some((u) => aUsers.some((x) => x.id === u.id))).toBe(false);
+    for (const user of aUsers) {
+      expect(
+        (await panel(b.cookie, "PATCH", `/v1/admin/users/${user.id}`, { active: false }))
+          .statusCode,
+      ).toBe(404);
+      expect(
+        (await panel(b.cookie, "POST", `/v1/admin/users/${user.id}/reset-password`)).statusCode,
+      ).toBe(404);
+    }
+    expect((await panel(a.cookie, "GET", "/v1/auth/me")).statusCode).toBe(200);
   });
 });

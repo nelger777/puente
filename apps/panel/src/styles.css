@@ -632,3 +632,45 @@ main {
     grid-template-columns: 110px minmax(0, 1fr) 30px;
   }
 }
+
+/* ---------- companies and users ---------- */
+.switcher label {
+  margin-top: 0;
+}
+.list-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.list-table th,
+.list-table td {
+  text-align: left;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.list-table th {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+.list-table .actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.table-scroll {
+  overflow-x: auto;
+}
+.secret-note {
+  border: 1px solid var(--accent);
+  background: var(--soft);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+.secret-note code {
+  font-size: 1.05rem;
+  font-weight: 700;
+  user-select: all;
+}

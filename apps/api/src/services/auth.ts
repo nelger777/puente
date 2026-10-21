@@ -41,7 +41,15 @@ export async function login(
     throw new ApiError(429, "too_many_attempts", "Demasiados intentos. Espera 15 minutos.");
   }
 
-  if (!(await verifyPassword(user.passwordHash, password))) {
+  const valid = await verifyPassword(user.passwordHash, password);
+  if (valid && !user.active) {
+    throw new ApiError(
+      403,
+      "user_disabled",
+      "Tu usuario está desactivado. Habla con tu administrador.",
+    );
+  }
+  if (!valid) {
     const failed = user.failedLoginCount + 1;
     const lock = failed >= MAX_FAILED_LOGINS;
     await db.user.update({
@@ -76,9 +84,12 @@ export async function login(
 export async function findSession(db: Db, secret: string, token: string, now: Date) {
   const session = await db.session.findUnique({
     where: { tokenHash: hashSessionToken(secret, token) },
-    include: { user: { include: { business: { select: { id: true, name: true } } } } },
+    include: {
+      user: { include: { business: { select: { id: true, name: true } } } },
+      actingBusiness: { select: { id: true, name: true } },
+    },
   });
-  if (!session || session.expiresAt <= now) return null;
+  if (!session || session.expiresAt <= now || !session.user.active) return null;
   return session;
 }
 

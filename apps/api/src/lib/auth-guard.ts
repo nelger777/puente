@@ -8,8 +8,11 @@ export interface AuthContext {
   userId: string;
   email: string;
   role: UserRole;
+  platformAdmin: boolean;
+  /** The business every panel query is scoped to: the user's own, or the one a platform admin entered. */
   businessId: string;
   businessName: string;
+  sessionId: string;
   sessionToken: string;
 }
 
@@ -19,19 +22,37 @@ declare module "fastify" {
   }
 }
 
+/** Resolves the session's cookie into the request's AuthContext, or null if it is not valid. */
+export async function loadAuth(
+  db: Db,
+  secret: string,
+  token: string,
+  now: Date,
+): Promise<AuthContext | null> {
+  const session = await findSession(db, secret, token, now);
+  if (!session) return null;
+  const { user } = session;
+  // Only a platform admin can act on another business, and always does it as its ADMIN.
+  const acting = user.isPlatformAdmin ? session.actingBusiness : null;
+  const business = acting ?? user.business;
+  return {
+    userId: user.id,
+    email: user.email,
+    role: acting ? "ADMIN" : user.role,
+    platformAdmin: user.isPlatformAdmin,
+    businessId: business.id,
+    businessName: business.name,
+    sessionId: session.id,
+    sessionToken: token,
+  };
+}
+
 export function requireSession(db: Db, secret: string, now: () => Date) {
   return async (request: FastifyRequest): Promise<void> => {
     const token = request.cookies[SESSION_COOKIE];
-    const session = token ? await findSession(db, secret, token, now()) : null;
-    if (!token || !session) throw new ApiError(401, "unauthorized", "Inicia sesión para continuar");
-    request.auth = {
-      userId: session.user.id,
-      email: session.user.email,
-      role: session.user.role,
-      businessId: session.user.business.id,
-      businessName: session.user.business.name,
-      sessionToken: token,
-    };
+    const auth = token ? await loadAuth(db, secret, token, now()) : null;
+    if (!auth) throw new ApiError(401, "unauthorized", "Inicia sesión para continuar");
+    request.auth = auth;
   };
 }
 
@@ -41,6 +62,13 @@ export function requireRole(role: UserRole) {
     request.auth?.role === role
       ? Promise.resolve()
       : Promise.reject(new ApiError(403, "forbidden", "No tienes permiso para esta acción"));
+}
+
+/** Use after requireSession. */
+export function requirePlatformAdmin(request: FastifyRequest): Promise<void> {
+  return request.auth?.platformAdmin
+    ? Promise.resolve()
+    : Promise.reject(new ApiError(403, "forbidden", "No tienes permiso para esta acción"));
 }
 
 /** Narrowing helper for handlers behind requireSession. */

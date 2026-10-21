@@ -79,3 +79,34 @@ export function ErrorNote({ error, onRetry }: { error: Error; onRetry?: () => vo
 export function Empty({ children }: { children: ReactNode }) {
   return <div className="empty">{children}</div>;
 }
+
+/** A generated password, shown once: the server only keeps its hash. */
+export function SecretNote({
+  email,
+  password,
+  onClose,
+  children,
+}: {
+  email: string;
+  password: string;
+  onClose: () => void;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="secret-note" role="status">
+      <p>
+        Contraseña de <b>{email}</b>: <code>{password}</code>
+      </p>
+      <p className="muted small">
+        Cópiala y entrégala por un canal seguro. No se vuelve a mostrar; si se pierde, se restablece
+        desde Usuarios.
+      </p>
+      <div className="form-foot">
+        {children}
+        <button type="button" className="btn ghost small" onClick={onClose}>
+          Ya la copié
+        </button>
+      </div>
+    </div>
+  );
+}

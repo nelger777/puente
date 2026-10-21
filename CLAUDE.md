@@ -66,5 +66,6 @@ docker-compose.yml
 - Panel: `pnpm dev` y abrir http://localhost:5174 (usuario de la semilla `admin@opticamirador.com` / `puente-admin-dev`).
 - `pnpm db:migrate` / `pnpm db:seed` — migraciones y datos de ejemplo.
 - `pnpm lint` / `pnpm typecheck` / `pnpm format`.
+- `pnpm --filter @puente/api platform-admin <correo> on|off` — marca al admin de plataforma (sección Empresas del panel).
 - Producción: `docs/DEPLOY.md` (`deploy/compose.yml`, `sh deploy/deploy.sh`, `sh deploy/smoke.sh`).
 - Las pruebas de la API usan la base `puente_test` (`TEST_DATABASE_URL`) y aplican las migraciones solas.
