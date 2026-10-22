@@ -61,7 +61,12 @@ docker compose up -d api
 - [ ] Si La Rural elige el plan mensual: `docker compose exec api node dist/set-quota.js la-rural 4000`. Con pago único y clave propia, dejarlo sin tope.
 - [ ] Cargar `ALERT_EMAIL` en `deploy/.env` para recibir los avisos de 80 % y 100 % (requiere el SMTP de la sección Correo).
 
+## Empresas y usuarios
+
+- [x] Desplegado en staging el 2026-10-21 (migración aplicada). `nelsongerard130@gmail.com` es admin de plataforma: ve **Empresas** y el selector de empresa; probado en el panel.
+- [ ] Contraseñas generadas (alta de empresa, de usuario y restablecimiento): se entregan a mano hasta tener el SMTP de la sección Correo.
+
 ## Opcional más adelante
 
 - [ ] Enlace directo al chat (página alojada) para comercios que no pueden editar su HTML.
-- [ ] Pantalla de gestión de usuarios del panel (hoy se crean con la semilla).
+- [x] Pantalla de gestión de usuarios del panel (Usuarios, 2026-10-21).
