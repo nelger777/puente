@@ -82,8 +82,8 @@ export function adminRoutes(deps: AdminRoutesDeps) {
       return businessResponse(await updateBusiness(db, authOf(request).businessId, settings));
     });
 
-    // The picture travels as a data URL: up to 200 KB of image, ~270 KB once encoded.
-    app.put("/business/avatar", { ...adminOnly, bodyLimit: 512 * 1024 }, async (request) => {
+    // The picture travels as a data URL: up to 1000 KB of animation, ~1.33 MB once encoded.
+    app.put("/business/avatar", { ...adminOnly, bodyLimit: 1536 * 1024 }, async (request) => {
       const { dataUrl } = parseInput(AvatarUploadSchema, request.body);
       const { businessId } = authOf(request);
       await saveAvatar(db, businessId, dataUrl);

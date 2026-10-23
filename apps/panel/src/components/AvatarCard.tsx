@@ -1,7 +1,7 @@
 import { AVATAR_MIME_TYPES, type BusinessResponse } from "@puente/shared";
 import { useRef, useState } from "react";
 import { api } from "../api/client";
-import { AVATAR_INPUT_MAX_BYTES, AVATAR_SIDE, resizeToAvatar } from "../lib/resize-image";
+import { AVATAR_INPUT_MAX_BYTES, AVATAR_SIDE, prepareAvatar } from "../lib/resize-image";
 import { Card } from "./ui";
 
 /** Assistant picture: preview for everyone, upload/remove for admins. */
@@ -35,15 +35,16 @@ export function AvatarCard({
   async function onFile(file: File | undefined) {
     if (!file) return;
     if (!(AVATAR_MIME_TYPES as readonly string[]).includes(file.type)) {
-      setMessage({ ok: false, text: "Usa una imagen PNG, JPG o WebP." });
+      setMessage({ ok: false, text: "Usa una imagen PNG, JPG, WebP o GIF." });
       return;
     }
     if (file.size > AVATAR_INPUT_MAX_BYTES) {
       setMessage({ ok: false, text: "La imagen debe pesar hasta 5 MB." });
       return;
     }
-    // Shrunk in the browser to a light square: visitors download ~30 KB, not the original.
-    await run(async () => api.uploadAvatar(await resizeToAvatar(file)), "Imagen actualizada");
+    // Still pictures are shrunk in the browser to a light square (~30 KB); animations go as
+    // they are, up to 1000 KB, so they keep moving.
+    await run(async () => api.uploadAvatar(await prepareAvatar(file)), "Imagen actualizada");
   }
 
   const initial = (business.botName.trim()[0] ?? "A").toUpperCase();
@@ -60,9 +61,10 @@ export function AvatarCard({
         <div className="stack">
           <p className="muted small">
             Se ve en el botón y en la cabecera del chat. Puede ser una ilustración de{" "}
-            {business.botName} o el logo del negocio: PNG, JPG o WebP de hasta 5 MB. Se recorta al
-            centro y se reduce sola a {AVATAR_SIDE}×{AVATAR_SIDE} px. Sin imagen se muestra la
-            inicial.
+            {business.botName} o el logo del negocio: PNG, JPG, WebP o GIF de hasta 5 MB. Se recorta
+            al centro y se reduce sola a {AVATAR_SIDE}×{AVATAR_SIDE} px. Las animaciones (GIF, WebP
+            o PNG animado) se suben tal cual, de hasta 1000 KB: conviene que sean cuadradas y
+            livianas. Sin imagen se muestra la inicial.
           </p>
           {isAdmin ? (
             <div className="form-foot">

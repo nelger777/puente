@@ -158,14 +158,19 @@ export type LlmTestResponse = z.infer<typeof LlmTestResponseSchema>;
 // ---------- Assistant picture ----------
 
 export const AVATAR_MAX_BYTES = 200 * 1024;
-export const AVATAR_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
+/** Animations are stored as uploaded (a canvas would keep only the first frame), so they weigh more. */
+export const AVATAR_ANIMATED_MAX_BYTES = 1000 * 1024;
+export const AVATAR_MIME_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"] as const;
 
 /** Upload as a data URL (the panel reads the file in the browser). SVG is never accepted. */
 export const AvatarUploadSchema = z.object({
   dataUrl: z
     .string()
-    .max(Math.ceil((AVATAR_MAX_BYTES * 4) / 3) + 64)
-    .regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+=*$/, "Imagen PNG, JPG o WebP"),
+    .max(Math.ceil((AVATAR_ANIMATED_MAX_BYTES * 4) / 3) + 64)
+    .regex(
+      /^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+=*$/,
+      "Imagen PNG, JPG, WebP o GIF",
+    ),
 });
 
 // ---------- Knowledge base ----------

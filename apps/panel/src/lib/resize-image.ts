@@ -1,4 +1,10 @@
-import { AVATAR_MAX_BYTES } from "@puente/shared";
+import {
+  AVATAR_ANIMATED_MAX_BYTES,
+  AVATAR_MAX_BYTES,
+  isAnimatedImage,
+  sniffImage,
+  type AvatarMime,
+} from "@puente/shared";
 
 /** What the panel accepts before shrinking; the server keeps its own 200 KB limit. */
 export const AVATAR_INPUT_MAX_BYTES = 5 * 1024 * 1024;
@@ -40,6 +46,29 @@ function toDataUrl(blob: Blob): Promise<string> {
 }
 
 /**
+ * Animations must go as uploaded: a canvas keeps only the first frame. Returns their real type,
+ * or null for a still picture (which is shrunk). Throws if an animation is too heavy.
+ */
+export function animatedType(bytes: Uint8Array): AvatarMime | null {
+  if (!isAnimatedImage(bytes)) return null;
+  if (bytes.length > AVATAR_ANIMATED_MAX_BYTES) {
+    const kb = Math.ceil(bytes.length / 1024);
+    throw new Error(
+      `La animación pesa ${kb} KB y el máximo es ${AVATAR_ANIMATED_MAX_BYTES / 1024} KB. ` +
+        "Redúcela (menos cuadros o menor tamaño) y vuelve a subirla.",
+    );
+  }
+  return sniffImage(bytes);
+}
+
+/** Data URL to upload: animations untouched, still pictures shrunk to a light square. */
+export async function prepareAvatar(file: File): Promise<string> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const type = animatedType(bytes);
+  return type ? toDataUrl(new Blob([bytes], { type })) : resizeToAvatar(file);
+}
+
+/**
  * Shrinks a picture to a 256×256 square in the browser (EXIF, GPS included, is dropped by
  * re-encoding). WebP keeps transparency; browsers that cannot encode WebP get PNG, and a JPEG
  * on white if the PNG is still over the server limit.
@@ -49,7 +78,7 @@ export async function resizeToAvatar(file: File): Promise<string> {
   try {
     bitmap = await createImageBitmap(file);
   } catch {
-    throw new Error("No se pudo abrir la imagen. Prueba con un PNG, JPG o WebP.");
+    throw new Error("No se pudo abrir la imagen. Prueba con un PNG, JPG, WebP o GIF.");
   }
   const crop = squareCrop(bitmap.width, bitmap.height);
   const canvas = document.createElement("canvas");

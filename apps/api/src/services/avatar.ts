@@ -1,47 +1,39 @@
-import { AVATAR_MAX_BYTES } from "@puente/shared";
+import {
+  AVATAR_ANIMATED_MAX_BYTES,
+  AVATAR_MAX_BYTES,
+  isAnimatedImage,
+  sniffImage,
+  stripImageMetadata,
+  type AvatarMime,
+} from "@puente/shared";
 import type { Db } from "../db/client";
 import { ApiError } from "../lib/errors";
 
-type AvatarMime = "image/png" | "image/jpeg" | "image/webp";
+const invalid = (message: string) => new ApiError(400, "invalid_request", message);
 
-/** Real file type from its first bytes: the declared type is never trusted (no SVG, no HTML). */
-function sniff(data: Buffer): AvatarMime | null {
-  if (
-    data.length >= 8 &&
-    data.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
-  ) {
-    return "image/png";
-  }
-  if (data.length >= 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff)
-    return "image/jpeg";
-  if (
-    data.length >= 12 &&
-    data.subarray(0, 4).toString("latin1") === "RIFF" &&
-    data.subarray(8, 12).toString("latin1") === "WEBP"
-  ) {
-    return "image/webp";
-  }
-  return null;
-}
-
-/** Decodes a validated data URL (AvatarUploadSchema) into bytes, checking size and real type. */
+/**
+ * Decodes a validated data URL (AvatarUploadSchema) into bytes, checking size and real type.
+ * Animations (GIF, WebP, APNG) arrive as uploaded, so their metadata is stripped here.
+ */
 export function decodeAvatar(dataUrl: string): { mimeType: AvatarMime; data: Buffer } {
-  const match = /^data:(image\/(?:png|jpeg|webp));base64,(.+)$/.exec(dataUrl);
-  if (!match?.[1] || !match[2])
-    throw new ApiError(400, "invalid_request", "Imagen PNG, JPG o WebP");
-  const data = Buffer.from(match[2], "base64");
-  if (data.length === 0 || data.length > AVATAR_MAX_BYTES) {
-    throw new ApiError(400, "invalid_request", "La imagen debe pesar hasta 200 KB");
-  }
-  const real = sniff(data);
+  const match = /^data:(image\/(?:png|jpeg|webp|gif));base64,(.+)$/.exec(dataUrl);
+  if (!match?.[1] || !match[2]) throw invalid("Imagen PNG, JPG, WebP o GIF");
+  const raw = Buffer.from(match[2], "base64");
+  const real = sniffImage(raw);
   if (!real || real !== match[1]) {
-    throw new ApiError(
-      400,
-      "invalid_request",
-      "El archivo no es una imagen PNG, JPG o WebP válida",
+    throw invalid("El archivo no es una imagen PNG, JPG, WebP o GIF válida");
+  }
+  const animated = isAnimatedImage(raw);
+  const max = animated ? AVATAR_ANIMATED_MAX_BYTES : AVATAR_MAX_BYTES;
+  if (raw.length > max) {
+    throw invalid(
+      animated ? "La animación debe pesar hasta 1000 KB" : "La imagen debe pesar hasta 200 KB",
     );
   }
-  return { mimeType: real, data };
+  if (real === "image/jpeg") return { mimeType: real, data: raw };
+  const clean = stripImageMetadata(raw);
+  if (!clean) throw invalid("La imagen está dañada o incompleta");
+  return { mimeType: real, data: Buffer.from(clean) };
 }
 
 /** Public URL of the picture; the version changes with each upload so caches refresh. */

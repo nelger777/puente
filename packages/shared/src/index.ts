@@ -1,3 +1,4 @@
+export * from "./avatar-image";
 export * from "./schemas/admin";
 export * from "./schemas/business";
 export * from "./schemas/errors";
