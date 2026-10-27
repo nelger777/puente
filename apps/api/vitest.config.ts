@@ -19,5 +19,8 @@ export default defineConfig({
     env: { NODE_ENV: "test", DATABASE_URL: testDatabaseUrl },
     // Tests share one database: run files sequentially.
     fileParallelism: false,
+    // Panel tests log in several users (argon2) against the real database: 5 s is too tight
+    // on a busy machine.
+    testTimeout: 15_000,
   },
 });
