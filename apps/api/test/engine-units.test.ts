@@ -162,7 +162,21 @@ describe("prompt", () => {
     expect(prompt).toContain('Eres Luz, asistente virtual de "Óptica Mirador" (óptica)');
     expect(prompt).toContain("TEMAS SENSIBLES: reclamo");
     expect(prompt).toContain("1. P: ¿Horario?\n   R: De 8 a 18.");
-    expect(prompt).toContain("Tratas al cliente de tú.");
+    expect(prompt).toContain("En español, tratas al cliente de tú.");
+  });
+
+  it("answers in the customer's language but keeps the team's texts in Spanish", () => {
+    const prompt = buildSystemPrompt(
+      { botName: "Laura", name: "La Rural", kind: "seguros", sensitiveTopics: [], voice: "vos" },
+      [],
+    );
+    expect(prompt).toContain("Respondes en el idioma en que escribe el cliente");
+    expect(prompt).not.toContain("Respondes en español");
+    expect(prompt).toMatch(/- summary:[^\n]*Siempre en español\./);
+    expect(prompt).toMatch(
+      /- wa_message[^\n]*Siempre en español, aunque el cliente escriba en otro idioma/,
+    );
+    expect(prompt).toMatch(/- quick_replies:[^\n]*en el idioma del cliente/);
   });
 
   it("asks for voseo when the business uses vos", () => {
@@ -170,7 +184,7 @@ describe("prompt", () => {
       { botName: "Laura", name: "La Rural", kind: "seguros", sensitiveTopics: [], voice: "vos" },
       [],
     );
-    expect(prompt).toContain("Tratás al cliente de vos");
+    expect(prompt).toContain("En español, tratás al cliente de vos");
   });
 
   it("keeps the last 20 turns and starts with the user", () => {
