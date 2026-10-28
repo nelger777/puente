@@ -127,3 +127,22 @@ test("fills the screen on phones", async ({ page }) => {
   expect(box?.width).toBe(375);
   expect(box?.height).toBe(700);
 });
+
+test("on phones, the launcher does not cover the Send button while the chat is open", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 700 });
+  await openChat(page);
+  const launcher = page.getByRole("button", { name: "Abrir el chat con Luz" });
+  await expect(launcher).toBeHidden();
+
+  // A real click: Playwright fails it if anything else is on top of the button.
+  await page.getByRole("textbox", { name: "Tu mensaje" }).fill("¿Cuál es el horario?");
+  await page.getByRole("button", { name: "Enviar" }).click();
+  await expect(page.getByText("Atendemos de lunes a sábado de 08:00 a 18:00.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Cerrar el chat" }).click();
+  await expect(page.getByRole("dialog")).toBeHidden();
+  await expect(launcher).toBeVisible();
+  await expect(launcher).toBeFocused();
+});

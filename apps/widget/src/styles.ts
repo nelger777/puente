@@ -54,6 +54,8 @@ button, input, textarea { font: inherit; color: inherit; }
     position: fixed; inset: 0; width: 100vw; height: 100dvh; max-height: none;
     border-radius: 0; border: 0;
   }
+  /* Full-screen chat: the launcher would sit on top of the Send button. The header's × closes. */
+  .panel:not([hidden]) ~ .launcher { display: none; }
 }
 
 .head {
