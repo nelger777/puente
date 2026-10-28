@@ -2,7 +2,7 @@ import { ChatResponseSchema, type ChatResponse } from "@puente/shared";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { LlmTransportError } from "../src/engine/llm";
 import { IpRateLimiter } from "../src/engine/rate-limits";
-import { REPLIES, REPLIES_VOS } from "../src/engine/pipeline";
+import { REPLIES, REPLIES_EN, REPLIES_JA, REPLIES_VOS } from "../src/engine/pipeline";
 import {
   answer,
   createBusiness,
@@ -304,6 +304,47 @@ describe("POST /v1/chat — handoff reasons", () => {
     const res = body(await postChat(app, { key: business.publicKey, message: "¿Horario?" }));
     expect(res.handoff?.reason).toBe("TECHNICAL_FAILURE");
     expect(llm.calls).toHaveLength(1);
+  });
+});
+
+describe("POST /v1/chat — customer language", () => {
+  it("keeps telling the model the customer's language when the next message is short", async () => {
+    const business = await createBusiness(db);
+    const llm = new FakeLlm([answer("営業時間は8時から18時です。"), answer("どういたしまして。")]);
+    const { app } = makeApp(db, { llm });
+
+    const first = body(
+      await postChat(app, { key: business.publicKey, message: "営業時間を教えてください" }),
+    );
+    const ids = {
+      conversationId: first.conversationId,
+      conversationToken: first.conversationToken,
+    };
+    await postChat(app, { key: business.publicKey, message: "ok", ...ids });
+
+    expect(llm.calls).toHaveLength(2);
+    for (const call of llm.calls) expect(call.system).toContain("IDIOMA DEL CLIENTE: japonés.");
+  });
+
+  it("gives the technical-failure reply in Japanese", async () => {
+    const business = await createBusiness(db);
+    const { app } = makeApp(db, { llm: new FakeLlm([{ text: "no es JSON" }]) });
+    const ja = body(
+      await postChat(app, {
+        key: business.publicKey,
+        message: "保険の見積もりをお願いします",
+      }),
+    );
+    expect(ja.reply).toBe(REPLIES_JA.technicalFailure);
+  });
+
+  it("uses the English limit reply", async () => {
+    const business = await createBusiness(db, { maxMessagesPerConv: 0 });
+    const { app } = makeApp(db);
+    const res = body(
+      await postChat(app, { key: business.publicKey, message: "What are your opening hours?" }),
+    );
+    expect(res.reply).toBe(REPLIES_EN.limit);
   });
 });
 

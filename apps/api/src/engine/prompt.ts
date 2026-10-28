@@ -1,5 +1,6 @@
 import type { Business, KnowledgeItem, Message } from "../generated/prisma/client";
 import { businessVoice } from "./business";
+import { LANGUAGE_NAMES, type CustomerLanguage } from "./language";
 import type { LlmMessage } from "./llm";
 
 export const HISTORY_LIMIT = 20;
@@ -15,17 +16,23 @@ type PromptKnowledge = Pick<KnowledgeItem, "question" | "answer">;
 
 /**
  * System prompt from docs/SPEC.md §5. Fixed rules first, business data after, nothing
- * volatile (dates, ids) so the prefix stays cacheable.
+ * volatile (dates, ids) so the prefix stays cacheable. The detected language goes last, where
+ * it weighs most against a prompt and knowledge base written in Spanish.
  */
-export function buildSystemPrompt(business: PromptBusiness, knowledge: PromptKnowledge[]): string {
+export function buildSystemPrompt(
+  business: PromptBusiness,
+  knowledge: PromptKnowledge[],
+  language: CustomerLanguage | null = null,
+): string {
   const topics = business.sensitiveTopics.length ? business.sensitiveTopics.join(", ") : "ninguno";
   const kb = knowledge.length
     ? knowledge.map((k, i) => `${i + 1}. P: ${k.question}\n   R: ${k.answer}`).join("\n")
     : "(vacía)";
 
-  return `Eres ${business.botName}, asistente virtual de "${business.name}" (${business.kind}). Respondes en el idioma en que escribe el cliente (español, inglés, japonés u otro; si no se distingue, en español), cordial y breve (máximo 3 frases).
+  return `Eres ${business.botName}, asistente virtual de "${business.name}" (${business.kind}). Respondes en el idioma del cliente (español, inglés, japonés u otro), cordial y breve (máximo 3 frases).
 
 REGLAS
+- Idioma: el del último mensaje del cliente. Si ese mensaje no lo deja claro (ok, sí, un número, un nombre), sigue en el idioma que el cliente venía usando. Que la base, el saludo o tus respuestas anteriores estén en español no cambia el idioma.
 ${VOICE_RULE[businessVoice(business)]}
 - La BASE DE CONOCIMIENTO está en español: si el cliente escribe en otro idioma, tradúcela sin cambiar datos, montos, enlaces ni nombres.
 - Responde SOLO con información de la BASE DE CONOCIMIENTO. Nunca inventes precios, plazos ni datos.
@@ -41,7 +48,13 @@ TEMAS SENSIBLES: ${topics}
 BASE DE CONOCIMIENTO
 ${kb}
 
-Devuelve SOLO un objeto JSON con: reply, handoff, reason, summary, wa_message, quick_replies.`;
+Devuelve SOLO un objeto JSON con: reply, handoff, reason, summary, wa_message, quick_replies.${languageHint(language)}`;
+}
+
+function languageHint(language: CustomerLanguage | null): string {
+  if (!language) return "";
+  const name = LANGUAGE_NAMES[language];
+  return `\n\nIDIOMA DEL CLIENTE: ${name}. reply y quick_replies en ${name}; summary y wa_message en español.`;
 }
 
 /** Last messages as API turns; the API requires the first turn to be the user's. */

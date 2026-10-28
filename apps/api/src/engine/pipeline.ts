@@ -23,6 +23,7 @@ import {
   type HandoffTexts,
 } from "./handoff";
 import type { LlmRouter } from "../services/llm-router";
+import { conversationLanguage, type CustomerLanguage } from "./language";
 import { callLlm, type LlmFailure } from "./llm";
 import { preRules } from "./pre-rules";
 import { buildHistory, buildSystemPrompt, HISTORY_LIMIT } from "./prompt";
@@ -43,6 +44,30 @@ export const REPLIES_VOS = {
   limitAlreadyHandedOff:
     "Ya derivé tu consulta al equipo. Tocá el botón de WhatsApp para seguir con una persona.",
 } as const;
+
+export const REPLIES_EN = {
+  limit:
+    "We've reached the message limit for this conversation. So you're not left without an answer, I'm connecting you with someone from our team.",
+  limitAlreadyHandedOff:
+    "I've already passed your question to our team. Tap the WhatsApp button to continue with a person.",
+  technicalFailure:
+    "I can't answer right now, but I'm connecting you with our team so your question isn't lost.",
+} as const;
+
+export const REPLIES_JA = {
+  limit:
+    "この会話のメッセージ上限に達しました。お答えできないままにならないよう、担当者におつなぎします。",
+  limitAlreadyHandedOff:
+    "お問い合わせはすでに担当者に引き継ぎました。WhatsAppのボタンを押して、担当者とお話しください。",
+  technicalFailure:
+    "ただいまお答えできませんが、お問い合わせが失われないよう担当者におつなぎします。",
+} as const;
+
+function fixedReplies(business: Business, language: CustomerLanguage | null) {
+  if (language === "en") return REPLIES_EN;
+  if (language === "ja") return REPLIES_JA;
+  return businessVoice(business) === "vos" ? REPLIES_VOS : REPLIES;
+}
 
 export interface EngineDeps {
   db: Db;
@@ -128,6 +153,8 @@ export async function handleChat(
     })
   ).reverse();
   const userMessages = history.filter((m) => m.role === "USER").map((m) => m.content);
+  const language = conversationLanguage(userMessages);
+  const replies = fixedReplies(business, language);
 
   const turn: Turn = {
     deps,
@@ -141,14 +168,13 @@ export async function handleChat(
   };
 
   if (counted.userMessageCount > business.maxMessagesPerConv) {
-    const replies = businessVoice(business) === "vos" ? REPLIES_VOS : REPLIES;
     return finishWithHandoff(turn, "LIMIT", null, { engine: "rules" }, (created) =>
       created ? replies.limit : replies.limitAlreadyHandedOff,
     );
   }
 
   // 6
-  const rule = preRules(input.message, business.sensitiveTopics);
+  const rule = preRules(input.message, business.sensitiveTopics, language ?? "es");
   if (rule) {
     return finishWithHandoff(turn, rule.reason, null, { engine: "rules" }, () => rule.reply);
   }
@@ -163,7 +189,7 @@ export async function handleChat(
   const result = await callLlm(
     route.transport,
     { model: route.model, timeoutMs: deps.llmTimeoutMs },
-    buildSystemPrompt(business, knowledge),
+    buildSystemPrompt(business, knowledge, language),
     buildHistory(history),
   );
   if (!result.ok) {
@@ -188,7 +214,7 @@ export async function handleChat(
         latencyMs: result.latencyMs,
         llmError: result.failure,
       },
-      () => REPLIES.technicalFailure,
+      () => replies.technicalFailure,
     );
   }
 

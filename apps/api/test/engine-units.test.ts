@@ -6,6 +6,7 @@ import {
   waText,
   waUrl,
 } from "../src/engine/handoff";
+import { conversationLanguage, detectLanguage } from "../src/engine/language";
 import { parseLlmOutput, parseLlmOutputDetailed } from "../src/engine/llm-output";
 import { findSensitiveTopic, preRules } from "../src/engine/pre-rules";
 import { buildHistory, buildSystemPrompt } from "../src/engine/prompt";
@@ -23,6 +24,15 @@ describe("preRules", () => {
     "operadora por favor",
   ])("hands off explicit requests: %s", (message) => {
     expect(preRules(message, [])?.reason).toBe("EXPLICIT_REQUEST");
+  });
+
+  it("answers in the customer's language", () => {
+    expect(preRules("Quiero hablar con una persona", [], "en")?.reply).toBe(
+      "Of course, I'm connecting you with someone from our team.",
+    );
+    expect(preRules("Tengo un reclamo", ["reclamo"], "ja")?.reply).toBe(
+      "この件は担当者が対応いたします。おつなぎします。",
+    );
   });
 
   it("does not trigger on similar words", () => {
@@ -170,13 +180,28 @@ describe("prompt", () => {
       { botName: "Laura", name: "La Rural", kind: "seguros", sensitiveTopics: [], voice: "vos" },
       [],
     );
-    expect(prompt).toContain("Respondes en el idioma en que escribe el cliente");
+    expect(prompt).toContain("Respondes en el idioma del cliente");
+    expect(prompt).toContain("- Idioma: el del último mensaje del cliente.");
     expect(prompt).not.toContain("Respondes en español");
     expect(prompt).toMatch(/- summary:[^\n]*Siempre en español\./);
     expect(prompt).toMatch(
       /- wa_message[^\n]*Siempre en español, aunque el cliente escriba en otro idioma/,
     );
     expect(prompt).toMatch(/- quick_replies:[^\n]*en el idioma del cliente/);
+  });
+
+  it("ends with the detected language, or nothing when unknown", () => {
+    const business = {
+      botName: "Laura",
+      name: "La Rural",
+      kind: "seguros",
+      sensitiveTopics: [],
+      voice: "vos",
+    };
+    expect(buildSystemPrompt(business, [], "ja")).toMatch(
+      /IDIOMA DEL CLIENTE: japonés\. reply y quick_replies en japonés; summary y wa_message en español\.$/,
+    );
+    expect(buildSystemPrompt(business, [])).not.toContain("IDIOMA DEL CLIENTE");
   });
 
   it("asks for voseo when the business uses vos", () => {
@@ -196,6 +221,27 @@ describe("prompt", () => {
     expect(history.length).toBeLessThanOrEqual(20);
     expect(history[0]?.role).toBe("user");
     expect(history.at(-1)?.content).toBe("m24");
+  });
+});
+
+describe("language", () => {
+  it.each([
+    ["保険の見積もりをお願いします", "ja"],
+    ["ありがとう", "ja"],
+    ["What are your opening hours?", "en"],
+    ["Hi, I need a quote for my car", "en"],
+    ["¿Cuál es el horario?", "es"],
+    ["quiero cotizar un seguro para mi auto", "es"],
+    ["ok", null],
+    ["123456", null],
+    ["Toyota Corolla 2020", null],
+  ])("detects %s as %s", (text, language) => {
+    expect(detectLanguage(text)).toBe(language);
+  });
+
+  it("carries the last known language over short messages", () => {
+    expect(conversationLanguage(["Hola", "Hello, what do you cover?", "ok", "2020"])).toBe("en");
+    expect(conversationLanguage(["ok"])).toBeNull();
   });
 });
 
