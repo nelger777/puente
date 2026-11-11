@@ -4,6 +4,14 @@ Estado al 2026-10-02: **staging en línea con La Rural Seguros** (12/12 verifica
 `162.246.18.165`, detrás del Caddy del sistema; Puente escucha en `127.0.0.1:8090`). Los sitios
 `judiciales` y `electro` del mismo servidor siguen funcionando igual.
 
+**Dirección temporal desde 2026-11-08:** https://puente.manageserv.net (`PUBLIC_URL` en
+`deploy/.env`; en `/etc/caddy/Caddyfile` el bloque de Puente atiende ese nombre y
+`puente.firefly.com.py` quedó comentado, respaldo `Caddyfile.bak-20261108-201903`). Para volver:
+descomentar `puente.firefly.com.py` en Caddy (`caddy validate` y `systemctl reload caddy`),
+restaurar `PUBLIC_URL=https://puente.firefly.com.py` y `sh deploy/deploy.sh`.
+
+- [ ] Volver a `puente.firefly.com.py` cuando se decida (pasos arriba) y cambiar el `src` del widget donde esté instalado.
+
 ## Para cerrar el Hito 6 (staging con negocio de prueba)
 
 - [x] **Negocio de prueba** (si no se hizo): `cd /opt/puente/deploy && docker compose exec api node dist/seed.js` → anotar la clave `pk_…`.
