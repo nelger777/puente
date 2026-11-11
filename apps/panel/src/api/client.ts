@@ -10,8 +10,9 @@ import type {
   ConversationListQuery,
   ConversationListResponse,
   HandoffDetail,
+  HandoffListQuery,
   HandoffListResponse,
-  HandoffStatus,
+  HandoffPatch,
   KnowledgeItemInput,
   KnowledgeResponse,
   KnowledgeVersionList,
@@ -23,6 +24,7 @@ import type {
   PasswordChange,
   PlatformBusinessList,
   PreviewChatRequest,
+  TeamResponse,
   UnansweredAdd,
   UnansweredListResponse,
   UserCreate,
@@ -124,12 +126,17 @@ export const api = {
   deleteConversations: (ids: string[]) =>
     request<ConversationDeleteResponse>("POST", "/v1/admin/conversations/delete", { ids }),
 
-  handoffs: (status?: HandoffStatus, cursor?: string) =>
-    request<HandoffListResponse>("GET", `/v1/admin/handoffs${qs({ status, cursor })}`),
+  handoffs: (query: HandoffListQuery = {}) =>
+    request<HandoffListResponse>("GET", `/v1/admin/handoffs${qs(query)}`),
   handoff: (code: string) =>
     request<HandoffDetail>("GET", `/v1/admin/handoffs/${encodeURIComponent(code)}`),
-  setHandoffStatus: (code: string, status: HandoffStatus) =>
-    request<HandoffDetail>("PATCH", `/v1/admin/handoffs/${encodeURIComponent(code)}`, { status }),
+  updateHandoff: (code: string, patch: HandoffPatch) =>
+    request<HandoffDetail>("PATCH", `/v1/admin/handoffs/${encodeURIComponent(code)}`, patch),
+  addHandoffNote: (code: string, body: string) =>
+    request<HandoffDetail>("POST", `/v1/admin/handoffs/${encodeURIComponent(code)}/notes`, {
+      body,
+    }),
+  team: () => request<TeamResponse>("GET", "/v1/admin/team"),
 
   metrics: (from?: string, to?: string) =>
     request<MetricsResponse>("GET", `/v1/admin/metrics${qs({ from, to })}`),

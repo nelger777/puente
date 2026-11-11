@@ -9,6 +9,7 @@ export const ID_PREFIXES = {
   message: "msg",
   handoff: "hof",
   handoffEvent: "hev",
+  handoffNote: "hno",
   user: "usr",
   session: "ses",
 } as const;

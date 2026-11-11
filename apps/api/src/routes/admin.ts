@@ -13,6 +13,7 @@ import {
   HandoffDetailSchema,
   HandoffListQuerySchema,
   HandoffListResponseSchema,
+  HandoffNoteCreateSchema,
   HandoffPatchSchema,
   KnowledgePutSchema,
   KnowledgeResponseSchema,
@@ -23,6 +24,7 @@ import {
   MetricsQuerySchema,
   MetricsResponseSchema,
   PreviewChatRequestSchema,
+  TeamResponseSchema,
   UnansweredAddSchema,
   UnansweredDismissSchema,
   UnansweredListResponseSchema,
@@ -38,10 +40,13 @@ import { handleChat, type EngineDeps } from "../engine/pipeline";
 import { authOf, requirePanelOrigin, requireRole, requireSession } from "../lib/auth-guard";
 import { parseInput } from "../lib/errors";
 import {
+  addHandoffNote,
   getBusiness,
   getHandoff,
   getMetrics,
   listHandoffs,
+  listTeam,
+  setHandoffAssignee,
   setHandoffStatus,
   toBusinessResponse,
   updateBusiness,
@@ -198,11 +203,17 @@ export function adminRoutes(deps: AdminRoutesDeps) {
     });
 
     app.get("/handoffs", async (request) => {
-      const { status, cursor } = parseInput(HandoffListQuerySchema, request.query);
+      const query = parseInput(HandoffListQuerySchema, request.query);
+      const auth = authOf(request);
       return HandoffListResponseSchema.parse(
-        await listHandoffs(db, authOf(request).businessId, status, cursor),
+        await listHandoffs(db, auth.businessId, auth.userId, query),
       );
     });
+
+    // The "Responsable" picker: every role assigns cases, so every role reads the team.
+    app.get("/team", async (request) =>
+      TeamResponseSchema.parse(await listTeam(db, authOf(request).businessId)),
+    );
 
     app.get("/handoffs/:code", async (request) => {
       const { code } = parseInput(HandoffCodeParamsSchema, request.params);
@@ -211,11 +222,30 @@ export function adminRoutes(deps: AdminRoutesDeps) {
 
     app.patch("/handoffs/:code", async (request) => {
       const { code } = parseInput(HandoffCodeParamsSchema, request.params);
-      const { status } = parseInput(HandoffPatchSchema, request.body);
+      const { status, assigneeId } = parseInput(HandoffPatchSchema, request.body);
       const auth = authOf(request);
-      return HandoffDetailSchema.parse(
-        await setHandoffStatus(db, auth.businessId, code, status, auth.userId, deps.now()),
-      );
+      let detail;
+      if (assigneeId !== undefined) {
+        detail = await setHandoffAssignee(db, auth.businessId, code, assigneeId, auth.userId);
+      }
+      if (status !== undefined) {
+        detail = await setHandoffStatus(db, auth.businessId, code, status, auth.userId, deps.now());
+      }
+      return HandoffDetailSchema.parse(detail);
+    });
+
+    // Internal notes: for the team only, never shown to the customer.
+    app.post("/handoffs/:code/notes", async (request, reply) => {
+      const { code } = parseInput(HandoffCodeParamsSchema, request.params);
+      const { body } = parseInput(HandoffNoteCreateSchema, request.body);
+      const auth = authOf(request);
+      return reply
+        .code(201)
+        .send(
+          HandoffDetailSchema.parse(
+            await addHandoffNote(db, auth.businessId, code, body, auth.userId),
+          ),
+        );
     });
 
     app.get("/metrics", async (request) => {

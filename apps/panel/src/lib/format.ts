@@ -10,6 +10,8 @@ const EVENT_LABELS: Record<string, string> = {
   resolved: "Marcada como atendida",
   reopened: "Reabierta",
   email_sent: "Aviso enviado por correo",
+  assigned: "Responsable asignado",
+  unassigned: "Quedó sin responsable",
   knowledge_added: "Respuesta agregada a la base",
   knowledge_dismissed: "Descartada en Sin respuesta",
 };

@@ -17,6 +17,7 @@ interface PendingState {
 const PendingContext = createContext<PendingState>({ count: 0, refresh: () => undefined });
 
 const REFRESH_MS = 60_000;
+const BASE_TITLE = "Puente · Panel";
 
 /** Pending-handoffs badge in the menu; pages call refresh() after changing a case. */
 export function PendingProvider({ children }: { children: ReactNode }) {
@@ -24,7 +25,7 @@ export function PendingProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(() => {
     api
-      .handoffs("PENDING")
+      .handoffs({ status: "PENDING" })
       .then((r) => setCount(r.pendingCount))
       .catch(() => undefined);
   }, []);
@@ -34,6 +35,14 @@ export function PendingProvider({ children }: { children: ReactNode }) {
     const timer = setInterval(refresh, REFRESH_MS);
     return () => clearInterval(timer);
   }, [refresh]);
+
+  // The tab shows the count too, so a waiting case is visible from another tab.
+  useEffect(() => {
+    document.title = count ? `(${count}) ${BASE_TITLE}` : BASE_TITLE;
+    return () => {
+      document.title = BASE_TITLE;
+    };
+  }, [count]);
 
   const value = useMemo(() => ({ count, refresh }), [count, refresh]);
   return <PendingContext.Provider value={value}>{children}</PendingContext.Provider>;

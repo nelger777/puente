@@ -285,8 +285,20 @@ export const KNOWLEDGE_TOKEN_WARNING = 20_000;
 
 export const HandoffListQuerySchema = z.object({
   status: HandoffStatusSchema.optional(),
+  /** "me" = assigned to the signed-in user; "none" = unassigned. */
+  assignee: z.enum(["me", "none"]).optional(),
+  /** A case code, a phone (any formatting), a name or words of the summary. */
+  q: z.string().trim().min(1).max(100).optional(),
   cursor: z.string().max(64).optional(),
 });
+export type HandoffListQuery = z.infer<typeof HandoffListQuerySchema>;
+
+export const TeamMemberSchema = z.object({ id: z.string(), email: z.string() });
+export type TeamMember = z.infer<typeof TeamMemberSchema>;
+
+/** Active users of the business, for the "Responsable" picker (every role may read it). */
+export const TeamResponseSchema = z.object({ members: z.array(TeamMemberSchema) });
+export type TeamResponse = z.infer<typeof TeamResponseSchema>;
 
 const IsoDate = z.iso.datetime();
 
@@ -306,6 +318,8 @@ export const HandoffSummarySchema = z.object({
   contactName: z.string().nullable(),
   contactPhone: z.string().nullable(),
   lastEvent: HandoffEventSchema.nullable(),
+  assignee: TeamMemberSchema.nullable(),
+  noteCount: z.int(),
 });
 export type HandoffSummary = z.infer<typeof HandoffSummarySchema>;
 
@@ -333,10 +347,38 @@ export const HandoffDetailSchema = HandoffSummarySchema.extend({
     }),
   ),
   events: z.array(HandoffEventSchema),
+  notes: z.array(
+    z.object({
+      id: z.string(),
+      /** E-mail of the author; null if that user no longer exists. */
+      author: z.string().nullable(),
+      body: z.string(),
+      createdAt: IsoDate,
+    }),
+  ),
 });
 export type HandoffDetail = z.infer<typeof HandoffDetailSchema>;
 
-export const HandoffPatchSchema = z.object({ status: HandoffStatusSchema });
+export const HandoffPatchSchema = z
+  .object({
+    status: HandoffStatusSchema.optional(),
+    /** A user of the business, or null to unassign. */
+    assigneeId: z.string().regex(/^usr_[a-z0-9]+$/).nullable().optional(),
+  })
+  .refine((p) => p.status !== undefined || p.assigneeId !== undefined, {
+    message: "Nada que cambiar",
+  });
+export type HandoffPatch = z.infer<typeof HandoffPatchSchema>;
+
+export const HANDOFF_NOTE_MAX = 1000;
+
+export const HandoffNoteCreateSchema = z.object({
+  body: z
+    .string()
+    .trim()
+    .min(1, "Escribe la nota")
+    .max(HANDOFF_NOTE_MAX, `Máximo ${HANDOFF_NOTE_MAX} caracteres`),
+});
 
 // ---------- Conversations ----------
 

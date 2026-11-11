@@ -1,13 +1,16 @@
 import {
+  HandoffCodeSchema,
   HandoffReasonSchema,
   type BusinessResponse,
   type BusinessSettings,
   type HandoffDetail,
+  type HandoffListQuery,
   type HandoffListResponse,
   type HandoffReason,
   type HandoffStatus,
   type HandoffSummary,
   type MetricsResponse,
+  type TeamResponse,
 } from "@puente/shared";
 import type { Db } from "../db/client";
 import { businessHours, businessVoice } from "../engine/business";
@@ -82,6 +85,8 @@ export function updateBusiness(db: Db, businessId: string, settings: BusinessSet
 
 const summaryInclude = {
   events: { orderBy: { createdAt: "desc" }, take: 1 },
+  assignedTo: { select: { id: true, email: true } },
+  _count: { select: { notes: true } },
 } satisfies Prisma.HandoffInclude;
 
 type HandoffWithLastEvent = Prisma.HandoffGetPayload<{ include: typeof summaryInclude }>;
@@ -100,6 +105,8 @@ function toSummary(h: HandoffWithLastEvent): HandoffSummary {
     lastEvent: last
       ? { type: last.type, actor: last.actor, createdAt: last.createdAt.toISOString() }
       : null,
+    assignee: h.assignedTo,
+    noteCount: h._count.notes,
   };
 }
 
@@ -108,14 +115,49 @@ function realHandoffs(businessId: string): Prisma.HandoffWhereInput {
   return { businessId, conversation: { isPreview: false } };
 }
 
+/**
+ * Inbox search: a case code; otherwise the contact name, the summary or the phone. Phones are
+ * compared by their digits, so "0981 123 456" finds "0981-123456".
+ */
+async function searchHandoffs(
+  db: Db,
+  businessId: string,
+  q: string,
+): Promise<Prisma.HandoffWhereInput> {
+  const code = HandoffCodeSchema.safeParse(q.toUpperCase().replace(/\s+/g, ""));
+  if (code.success) return { code: code.data };
+  const or: Prisma.HandoffWhereInput[] = [
+    { contactName: { contains: q, mode: "insensitive" } },
+    { summary: { contains: q, mode: "insensitive" } },
+  ];
+  const digits = q.replace(/\D/g, "");
+  if (digits.length >= 4) {
+    const rows = await db.$queryRaw<{ id: string }[]>`
+      SELECT id FROM "Handoff"
+      WHERE "businessId" = ${businessId}
+        AND regexp_replace(coalesce("contactPhone", ''), '[^0-9]', '', 'g') LIKE ${`%${digits}%`}
+      LIMIT 500`;
+    if (rows.length) or.push({ id: { in: rows.map((r) => r.id) } });
+  }
+  return { OR: or };
+}
+
 export async function listHandoffs(
   db: Db,
   businessId: string,
-  status: HandoffStatus | undefined,
-  cursor: string | undefined,
+  actorUserId: string,
+  query: HandoffListQuery,
 ): Promise<HandoffListResponse> {
+  const { status, assignee, q, cursor } = query;
+  const where: Prisma.HandoffWhereInput = {
+    ...realHandoffs(businessId),
+    ...(status ? { status } : {}),
+    ...(assignee === "me" ? { assignedToId: actorUserId } : {}),
+    ...(assignee === "none" ? { assignedToId: null } : {}),
+    ...(q ? { AND: await searchHandoffs(db, businessId, q) } : {}),
+  };
   const rows = await db.handoff.findMany({
-    where: { ...realHandoffs(businessId), ...(status ? { status } : {}) },
+    where,
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: HANDOFF_PAGE_SIZE + 1,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
@@ -137,6 +179,9 @@ async function findHandoff(db: Db, businessId: string, code: string) {
     where: { businessId, code },
     include: {
       events: { orderBy: { createdAt: "asc" } },
+      assignedTo: { select: { id: true, email: true } },
+      _count: { select: { notes: true } },
+      notes: { orderBy: { createdAt: "asc" }, include: { author: { select: { email: true } } } },
       conversation: {
         include: { messages: { orderBy: [{ createdAt: "asc" }, { role: "asc" }] } },
       },
@@ -169,6 +214,12 @@ export async function getHandoff(db: Db, businessId: string, code: string): Prom
       createdAt: m.createdAt.toISOString(),
     })),
     events,
+    notes: h.notes.map((n) => ({
+      id: n.id,
+      author: n.author?.email ?? null,
+      body: n.body,
+      createdAt: n.createdAt.toISOString(),
+    })),
   };
 }
 
@@ -205,6 +256,65 @@ export async function setHandoffStatus(
       }),
     ]);
   }
+  return getHandoff(db, businessId, code);
+}
+
+/**
+ * Active users of the business. The platform operator counts in their own business (where they
+ * also work cases), not in the ones they only enter.
+ */
+function teamMembers(businessId: string): Prisma.UserWhereInput {
+  return { businessId, active: true };
+}
+
+export async function listTeam(db: Db, businessId: string): Promise<TeamResponse> {
+  const members = await db.user.findMany({
+    where: teamMembers(businessId),
+    orderBy: { email: "asc" },
+    select: { id: true, email: true },
+  });
+  return { members };
+}
+
+/** Any user of the business may assign a case to anyone on the team, or unassign it. */
+export async function setHandoffAssignee(
+  db: Db,
+  businessId: string,
+  code: string,
+  assigneeId: string | null,
+  actorUserId: string,
+): Promise<HandoffDetail> {
+  const h = await findHandoff(db, businessId, code);
+  if (h.assignedToId === assigneeId) return getHandoff(db, businessId, code);
+  if (assigneeId) {
+    const member = await db.user.findFirst({
+      where: { ...teamMembers(businessId), id: assigneeId },
+    });
+    if (!member) throw new ApiError(400, "invalid_request", "Ese usuario no es parte del equipo.");
+  }
+  await db.$transaction([
+    db.handoff.update({ where: { id: h.id }, data: { assignedToId: assigneeId } }),
+    db.handoffEvent.create({
+      data: {
+        id: newId("hev"),
+        handoffId: h.id,
+        type: assigneeId ? "assigned" : "unassigned",
+        actor: actorUserId,
+      },
+    }),
+  ]);
+  return getHandoff(db, businessId, code);
+}
+
+export async function addHandoffNote(
+  db: Db,
+  businessId: string,
+  code: string,
+  body: string,
+  authorId: string,
+): Promise<HandoffDetail> {
+  const h = await findHandoff(db, businessId, code);
+  await db.handoffNote.create({ data: { id: newId("hno"), handoffId: h.id, authorId, body } });
   return getHandoff(db, businessId, code);
 }
 

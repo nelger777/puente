@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { HANDOFF_NOTE_MAX, type HandoffDetail } from "@puente/shared";
+import { useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router";
 import { api } from "../api/client";
 import { useIsAdmin } from "../auth";
@@ -12,24 +13,44 @@ export function CasePage() {
   const { refresh } = usePending();
   const isAdmin = useIsAdmin();
   const handoff = useApi(() => api.handoff(code), [code]);
+  const team = useApi(() => api.team(), []);
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<Error | null>(null);
+  const [note, setNote] = useState("");
 
-  async function toggleStatus() {
-    const h = handoff.data;
-    if (!h) return;
+  /** Runs a change to the case and shows the case as the server returns it. */
+  async function run(action: () => Promise<HandoffDetail>): Promise<boolean> {
     setSaving(true);
     setActionError(null);
     try {
-      handoff.setData(
-        await api.setHandoffStatus(h.code, h.status === "PENDING" ? "RESOLVED" : "PENDING"),
-      );
+      handoff.setData(await action());
       refresh();
+      return true;
     } catch (err) {
       setActionError(err instanceof Error ? err : new Error(String(err)));
+      return false;
     } finally {
       setSaving(false);
     }
+  }
+
+  function toggleStatus() {
+    const h = handoff.data;
+    if (!h) return;
+    void run(() =>
+      api.updateHandoff(h.code, { status: h.status === "PENDING" ? "RESOLVED" : "PENDING" }),
+    );
+  }
+
+  function assign(assigneeId: string) {
+    void run(() => api.updateHandoff(code, { assigneeId: assigneeId || null }));
+  }
+
+  async function addNote(event: FormEvent) {
+    event.preventDefault();
+    const body = note.trim();
+    if (!body) return;
+    if (await run(() => api.addHandoffNote(code, body))) setNote("");
   }
 
   const h = handoff.data;
@@ -62,6 +83,29 @@ export function CasePage() {
                 <dt>Estado</dt>
                 <dd>
                   <StatusTag status={h.status} />
+                </dd>
+                <dt>
+                  <label htmlFor="case-assignee">Responsable</label>
+                </dt>
+                <dd>
+                  <select
+                    id="case-assignee"
+                    className="inline-select"
+                    value={h.assignee?.id ?? ""}
+                    disabled={saving || !team.data}
+                    onChange={(e) => assign(e.target.value)}
+                  >
+                    <option value="">Sin responsable</option>
+                    {/* A disabled user keeps showing until the case is reassigned. */}
+                    {h.assignee && !team.data?.members.some((m) => m.id === h.assignee?.id) ? (
+                      <option value={h.assignee.id}>{h.assignee.email}</option>
+                    ) : null}
+                    {team.data?.members.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.email}
+                      </option>
+                    ))}
+                  </select>
                 </dd>
                 <dt>Motivo</dt>
                 <dd>
@@ -100,7 +144,7 @@ export function CasePage() {
                   type="button"
                   className="btn ghost"
                   disabled={saving}
-                  onClick={() => void toggleStatus()}
+                  onClick={toggleStatus}
                 >
                   {h.status === "PENDING" ? "Marcar atendido" : "Reabrir"}
                 </button>
@@ -119,6 +163,39 @@ export function CasePage() {
                 </p>
               ) : null}
               {actionError ? <ErrorNote error={actionError} /> : null}
+            </Card>
+            <Card title={`Notas internas (${h.notes.length})`}>
+              <p className="muted small">Solo las ve el equipo; el cliente nunca.</p>
+              {h.notes.length ? (
+                <ol className="notes">
+                  {h.notes.map((n) => (
+                    <li key={n.id}>
+                      <p>{n.body}</p>
+                      <span className="muted small">
+                        {n.author ?? "Usuario eliminado"} · {formatDate(n.createdAt)}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
+              <form onSubmit={(e) => void addNote(e)}>
+                <div className="field">
+                  <label htmlFor="case-note">Agregar una nota</label>
+                  <textarea
+                    id="case-note"
+                    rows={3}
+                    maxLength={HANDOFF_NOTE_MAX}
+                    placeholder="Ej.: Llamé a las 15:00 y no atendió; reintentar mañana."
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                  />
+                </div>
+                <div className="form-foot">
+                  <button type="submit" className="btn ghost" disabled={saving || !note.trim()}>
+                    Guardar nota
+                  </button>
+                </div>
+              </form>
             </Card>
             <Card title="Eventos">
               <ol className="events">

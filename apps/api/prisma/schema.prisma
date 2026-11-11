@@ -166,7 +166,11 @@ model Handoff {
   openedInHours  Boolean
   createdAt      DateTime       @default(now())
   resolvedAt     DateTime?
+  /// Who on the team is handling it; null = unassigned. Any user of the business may set it.
+  assignedToId   String?
+  assignedTo     User?          @relation("AssignedHandoffs", fields: [assignedToId], references: [id], onDelete: SetNull)
   events         HandoffEvent[]
+  notes          HandoffNote[]
 
   @@index([businessId, status, createdAt])
   @@index([conversationId, status])
@@ -198,22 +202,37 @@ model HandoffEvent {
   @@index([handoffId, createdAt])
 }
 
+/// Internal note on a case, for the team only: never shown to the customer.
+model HandoffNote {
+  id        String   @id // hno_
+  handoffId String
+  handoff   Handoff  @relation(fields: [handoffId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation("HandoffNotes", fields: [authorId], references: [id], onDelete: SetNull)
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([handoffId, createdAt])
+}
+
 model User {
-  id               String    @id // usr_
+  id               String        @id // usr_
   businessId       String
-  business         Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  email            String    @unique
+  business         Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  email            String        @unique
   passwordHash     String // argon2id
-  role             UserRole  @default(AGENT)
+  role             UserRole      @default(AGENT)
   /// Platform operator: can list and create businesses and enter any of them as ADMIN.
   /// Set only with the operator command (scripts/set-platform-admin.ts), never from the panel.
-  isPlatformAdmin  Boolean   @default(false)
+  isPlatformAdmin  Boolean       @default(false)
   /// Disabled users cannot log in; disabling one also ends their sessions.
-  active           Boolean   @default(true)
-  failedLoginCount Int       @default(0)
+  active           Boolean       @default(true)
+  failedLoginCount Int           @default(0)
   lockedUntil      DateTime?
-  createdAt        DateTime  @default(now())
+  createdAt        DateTime      @default(now())
   sessions         Session[]
+  assignedHandoffs Handoff[]     @relation("AssignedHandoffs")
+  handoffNotes     HandoffNote[] @relation("HandoffNotes")
 }
 
 enum UserRole {
