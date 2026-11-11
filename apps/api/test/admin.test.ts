@@ -344,6 +344,26 @@ describe("handoffs and metrics", () => {
     });
     expect(metrics.handoffsByReason.EXPLICIT_REQUEST).toBe(1);
     expect(metrics.recentPending).toHaveLength(1);
+    expect(metrics.languages).toEqual({ es: 2, en: 0, ja: 0, unknown: 0 });
+    const week = metrics.weekly.at(-1);
+    expect(week).toMatchObject({ conversations: 2, resolved: 1, handedOff: 1 });
+    expect(metrics.weekly.reduce((n, w) => n + w.conversations, 0)).toBe(2);
+  });
+
+  it("lists the questions repeated across conversations, without greetings", async () => {
+    const business = await createBusiness(db);
+    const admin = await createUser(db, business.id);
+    const llm = new FakeLlm();
+    const { app } = makeApp(db, { llm });
+    for (const message of ["¿Cubren granizo?", "cubren granizo", "Hola", "hola", "¿Horario?"]) {
+      llm.push(answer("Respuesta."));
+      await postChat(app, { key: business.publicKey, message });
+    }
+    const cookie = await loginAs(app, admin.email);
+    const metrics = MetricsResponseSchema.parse(
+      (await call(app, cookie, "GET", "/v1/admin/metrics")).json(),
+    );
+    expect(metrics.topQuestions).toEqual([{ question: "¿Cubren granizo?", conversations: 2 }]);
   });
 });
 

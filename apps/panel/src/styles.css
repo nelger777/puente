@@ -13,6 +13,9 @@
   --bad: #b42318;
   --bubble: #eef2f6;
   --radius: 12px;
+  /* Chart series (validated pair: dataviz palette slots 1 and 2). */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
   color-scheme: light;
 }
 
@@ -287,6 +290,156 @@ main {
 .usage {
   margin-top: 16px;
 }
+.usage-top {
+  margin-bottom: 16px;
+}
+.grid-2 + .grid-2 {
+  margin-top: 16px;
+}
+
+/* ---------- weekly chart ---------- */
+.wk-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.wk-legend li {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.wk-key {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+.s1 {
+  background: var(--series-1);
+}
+.s2 {
+  background: var(--series-2);
+}
+.wk-plot {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  padding-top: 4px;
+}
+.wk-col {
+  position: relative;
+  flex: 1 0 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 6px;
+  outline-offset: 2px;
+}
+.wk-col:hover,
+.wk-col:focus-visible {
+  background: var(--soft);
+}
+.wk-bar {
+  height: 160px;
+  width: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2px;
+}
+.wk-total {
+  height: 16px;
+  display: flex;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.wk-seg {
+  display: block;
+  min-height: 2px;
+}
+.wk-total + .wk-seg {
+  border-radius: 4px 4px 0 0;
+}
+.wk-x {
+  font-size: 0.72rem;
+  color: var(--muted);
+  padding: 4px 0 2px;
+  white-space: nowrap;
+}
+.wk-tip {
+  position: absolute;
+  top: 8px;
+  z-index: 2;
+  min-width: 200px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px -12px rgba(10, 20, 30, 0.35);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.82rem;
+  pointer-events: none;
+}
+.wk-tip.right {
+  left: calc(100% + 4px);
+}
+.wk-tip.left {
+  right: calc(100% + 4px);
+}
+.wk-tip-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.wk-line {
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+}
+.wk-table {
+  margin-top: 10px;
+  font-size: 0.85rem;
+}
+.wk-table summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+.wk-table table {
+  border-collapse: collapse;
+  margin-top: 6px;
+}
+.wk-table th,
+.wk-table td {
+  padding: 3px 12px 3px 0;
+  text-align: right;
+}
+.wk-table th[scope="row"],
+.wk-table thead th:first-child {
+  text-align: left;
+}
+.top-questions {
+  margin: 0;
+  padding-left: 20px;
+}
+/* Count floats right so the list keeps its 1., 2., 3. markers. */
+.top-questions li {
+  padding: 3px 0;
+  overflow-wrap: anywhere;
+}
+.top-questions li b {
+  float: right;
+  margin-left: 12px;
+}
+
 .row-link {
   display: block;
   padding: 10px;

@@ -406,6 +406,19 @@ export const MetricsResponseSchema = z.object({
     failureRate: z.number().min(0).max(1),
     avgLatencyMs: z.number().nullable(),
   }),
+  /** Conversations started in the period, by the customer's language ("unknown" = not detected). */
+  languages: z.object({ es: z.int(), en: z.int(), ja: z.int(), unknown: z.int() }),
+  /** Monday-based local weeks touching the period, by conversation start. */
+  weekly: z.array(
+    z.object({
+      weekStart: z.iso.date(),
+      conversations: z.int(),
+      resolved: z.int(),
+      handedOff: z.int(),
+    }),
+  ),
+  /** Messages repeated across conversations of the period, most asked first. */
+  topQuestions: z.array(z.object({ question: z.string(), conversations: z.int() })),
   pendingCount: z.int(),
   recentPending: z.array(HandoffSummarySchema),
   /** Current month in the business timezone, whatever the range; quota null = no plan cap. */

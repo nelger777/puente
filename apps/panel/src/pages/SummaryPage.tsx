@@ -4,7 +4,16 @@ import { Link } from "react-router";
 import { api } from "../api/client";
 import { useAuth } from "../auth";
 import { Card, Empty, ErrorNote, Loading, PageHeader, ReasonTag } from "../components/ui";
-import { formatDate, formatMonth, formatNumber, formatUsd, reasonLabel } from "../lib/format";
+import { formatWeek, WeeklyChart } from "../components/WeeklyChart";
+import { downloadCsv } from "../lib/csv";
+import {
+  formatDate,
+  formatMonth,
+  formatNumber,
+  formatUsd,
+  LANGUAGE_LABELS,
+  reasonLabel,
+} from "../lib/format";
 import { useApi } from "../lib/use-api";
 
 const PERIODS = [
@@ -43,12 +52,28 @@ export function SummaryPage() {
   );
 
   const m = metrics.data;
+
+  function exportCsv() {
+    if (!m) return;
+    downloadCsv(`resumen-semanal-${m.from}-a-${m.to}.csv`, [
+      ["Semana del (lunes)", "Conversaciones", "Resueltas por el asistente", "Derivadas al equipo"],
+      ...m.weekly.map((w) => [w.weekStart, w.conversations, w.resolved, w.handedOff]),
+    ]);
+  }
+
   return (
     <>
       <PageHeader
         title={me?.business.name ?? "Resumen"}
         subtitle="Cómo rinde el asistente. Las conversaciones de “Probar” no cuentan."
-        actions={periodPicker}
+        actions={
+          <>
+            {periodPicker}
+            <button type="button" className="btn ghost small" disabled={!m} onClick={exportCsv}>
+              Descargar CSV
+            </button>
+          </>
+        }
       />
       {metrics.error ? <ErrorNote error={metrics.error} onRetry={metrics.reload} /> : null}
       {!m ? (
@@ -75,6 +100,39 @@ export function SummaryPage() {
               <b>{Math.round(m.resolutionRate * 100)}%</b>
               <span>Tasa de resolución ({formatNumber(m.conversations)} conversaciones)</span>
             </div>
+          </div>
+          <Card title="Evolución semanal" className="usage-top">
+            {m.conversations === 0 ? (
+              <p className="muted">Sin conversaciones en este período.</p>
+            ) : (
+              <WeeklyChart weekly={m.weekly} />
+            )}
+            <p className="muted small">
+              Por semana de inicio de la conversación (lunes a domingo). Las semanas de los bordes
+              pueden estar incompletas: el período empieza el {formatWeek(m.from)}.
+            </p>
+          </Card>
+          <div className="grid-2">
+            <Card title="Idiomas de los clientes">
+              <Languages languages={m.languages} />
+            </Card>
+            <Card title="Lo que más preguntan">
+              {m.topQuestions.length === 0 ? (
+                <p className="muted">Todavía no hay preguntas repetidas en este período.</p>
+              ) : (
+                <ol className="top-questions">
+                  {m.topQuestions.map((q) => (
+                    <li key={q.question}>
+                      <span>{q.question}</span>
+                      <b>{formatNumber(q.conversations)}</b>
+                    </li>
+                  ))}
+                </ol>
+              )}
+              <p className="muted small">
+                Mensajes iguales en distintas conversaciones, sin contar saludos.
+              </p>
+            </Card>
           </div>
           <div className="grid-2">
             <Card title="Motivos de derivación">
@@ -185,5 +243,28 @@ function PlanUsage({ usage }: { usage: MetricsResponse["usage"] }) {
         </p>
       )}
     </Card>
+  );
+}
+
+function Languages({ languages }: { languages: MetricsResponse["languages"] }) {
+  const rows = [
+    ...(["es", "en", "ja"] as const).map((l) => [LANGUAGE_LABELS[l], languages[l]] as const),
+    ["Sin detectar", languages.unknown] as const,
+  ].filter(([, n]) => n > 0);
+  if (rows.length === 0) return <p className="muted">Sin conversaciones en este período.</p>;
+  const max = Math.max(...rows.map(([, n]) => n), 1);
+  return (
+    <>
+      {rows.map(([label, n]) => (
+        <div className="bar" key={label}>
+          <span>{label}</span>
+          <div className="track" aria-hidden="true">
+            <div className="fill" style={{ width: `${(100 * n) / max}%` }} />
+          </div>
+          <b>{formatNumber(n)}</b>
+        </div>
+      ))}
+      <p className="muted small">Sin detectar: mensajes muy cortos o en otro idioma.</p>
+    </>
   );
 }

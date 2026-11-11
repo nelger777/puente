@@ -17,9 +17,13 @@ import type { Business, Prisma } from "../generated/prisma/client";
 import { ApiError } from "../lib/errors";
 import { newId } from "../lib/ids";
 import { localMonth, startOfLocalDay } from "../lib/time";
+import { languageCounts, topQuestions, weeklySeries, type ConversationFacts } from "./insights";
 import { businessProvider } from "./llm-router";
 
 export const HANDOFF_PAGE_SIZE = 25;
+/** Bounds the summary's per-conversation work (~90 days of a busy site). */
+const INSIGHTS_MAX_CONVERSATIONS = 20_000;
+const INSIGHTS_MESSAGES_PER_CONVERSATION = 20;
 
 /** USD per million tokens. Cache reads/writes are counted as regular input (an estimate). */
 export interface LlmPrices {
@@ -290,6 +294,7 @@ export async function getMetrics(
     llmOk,
     failuresByKind,
     usage,
+    periodConversations,
   ] = await Promise.all([
     db.conversation.count({ where: conversationsInRange }),
     db.conversation.count({ where: { ...conversationsInRange, handoffs: { none: {} } } }),
@@ -323,7 +328,29 @@ export async function getMetrics(
     db.usageMonth.findUnique({
       where: { businessId_month: { businessId, month: localMonth(now, business.timezone) } },
     }),
+    // Weekly trend, languages and top questions are computed from the period's conversations.
+    db.conversation.findMany({
+      where: conversationsInRange,
+      take: INSIGHTS_MAX_CONVERSATIONS,
+      orderBy: { startedAt: "desc" },
+      select: {
+        startedAt: true,
+        handoffs: { select: { id: true }, take: 1 },
+        messages: {
+          where: { role: "USER" },
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+          take: INSIGHTS_MESSAGES_PER_CONVERSATION,
+          select: { content: true },
+        },
+      },
+    }),
   ]);
+  // Oldest first: a repeated question is shown the way it was first asked.
+  const facts: ConversationFacts[] = periodConversations.toReversed().map((c) => ({
+    day: dayString(c.startedAt, business.timezone),
+    handedOff: c.handoffs.length > 0,
+    userTexts: c.messages.map((m) => m.content),
+  }));
 
   const failures = { timeout: 0, api_error: 0, invalid_output: 0 };
   for (const row of failuresByKind) {
@@ -366,6 +393,9 @@ export async function getMetrics(
       failureRate: llmOk._count._all + failed ? failed / (llmOk._count._all + failed) : 0,
       avgLatencyMs: llmOk._avg.latencyMs === null ? null : Math.round(llmOk._avg.latencyMs),
     },
+    languages: languageCounts(facts),
+    weekly: weeklySeries(facts, fromDay, toDay),
+    topQuestions: topQuestions(facts),
     pendingCount,
     recentPending: recent.map(toSummary),
     usage: {
