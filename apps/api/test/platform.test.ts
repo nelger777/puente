@@ -379,3 +379,135 @@ describe("users of a business", () => {
     expect((await login(app, agent.email, password)).statusCode).toBe(200);
   });
 });
+
+describe("usage and quota", () => {
+  /** One real conversation this month: a customer message, a priced reply and a pending case. */
+  async function activity(businessId: string, now = new Date()) {
+    const conversationId = `conv_${businessId.slice(4)}x`;
+    await db.conversation.create({
+      data: {
+        id: conversationId,
+        businessId,
+        tokenHash: "x",
+        visitorId: "v",
+        originDomain: "negocio-a.com",
+        userMessageCount: 1,
+        startedAt: now,
+        lastMessageAt: now,
+      },
+    });
+    await db.message.createMany({
+      data: [
+        {
+          id: `msg_${conversationId}u`,
+          conversationId,
+          role: "USER",
+          content: "Hola",
+          createdAt: now,
+        },
+        {
+          id: `msg_${conversationId}a`,
+          conversationId,
+          role: "ASSISTANT",
+          content: "¡Hola!",
+          engine: "llm",
+          inputTokens: 1_000_000,
+          outputTokens: 200_000,
+          createdAt: now,
+        },
+      ],
+    });
+    await db.handoff.create({
+      data: {
+        id: `hof_${conversationId}`,
+        code: "DER-7777",
+        businessId,
+        conversationId,
+        reason: "EXPLICIT_REQUEST",
+        summary: "s",
+        waMessage: "w",
+        openedInHours: true,
+      },
+    });
+  }
+
+  it("lists this month's messages, AI cost, engine and pending cases per business", async () => {
+    const { app, home, operatorCookie } = await setup();
+    await activity(home.id);
+    const list = PlatformBusinessListSchema.parse(
+      (await call(app, operatorCookie, "GET", "/v1/platform/businesses")).json(),
+    );
+    // TEST_ENV prices: 1 USD per million input tokens, 5 per million output.
+    expect(list.businesses[0]).toMatchObject({
+      messagesThisMonth: 1,
+      costThisMonthUsd: 2,
+      llmProvider: "default",
+      pendingHandoffs: 1,
+    });
+  });
+
+  it("prices free Gemini at zero", async () => {
+    const { app, home, operatorCookie } = await setup();
+    await db.business.update({ where: { id: home.id }, data: { llmProvider: "gemini" } });
+    await activity(home.id);
+    const list = PlatformBusinessListSchema.parse(
+      (await call(app, operatorCookie, "GET", "/v1/platform/businesses")).json(),
+    );
+    expect(list.businesses[0]).toMatchObject({ costThisMonthUsd: 0, llmProvider: "gemini" });
+  });
+
+  it("sets and clears the monthly quota, re-arming this month's alerts", async () => {
+    const { app, home, operatorCookie } = await setup();
+    const month = new Intl.DateTimeFormat("en-CA", { timeZone: home.timezone })
+      .format(new Date())
+      .slice(0, 7);
+    await db.usageMonth.create({
+      data: {
+        businessId: home.id,
+        month,
+        conversations: 90,
+        alert80SentAt: new Date(),
+        alert100SentAt: null,
+      },
+    });
+
+    const res = await call(app, operatorCookie, "PUT", `/v1/platform/businesses/${home.id}/quota`, {
+      quota: 500,
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ monthlyConversationQuota: 500, conversationsThisMonth: 90 });
+    const usage = await db.usageMonth.findUniqueOrThrow({
+      where: { businessId_month: { businessId: home.id, month } },
+    });
+    expect(usage.alert80SentAt).toBeNull();
+
+    const cleared = await call(
+      app,
+      operatorCookie,
+      "PUT",
+      `/v1/platform/businesses/${home.id}/quota`,
+      {
+        quota: null,
+      },
+    );
+    expect(cleared.json()).toMatchObject({ monthlyConversationQuota: null });
+  });
+
+  it("validates the quota and refuses everyone but the operator", async () => {
+    const { app, home, operatorCookie, adminCookie } = await setup();
+    const url = `/v1/platform/businesses/${home.id}/quota`;
+    for (const quota of [0, -5, 2.5, "100", 2_000_000]) {
+      expect((await call(app, operatorCookie, "PUT", url, { quota })).statusCode).toBe(400);
+    }
+    expect((await call(app, adminCookie, "PUT", url, { quota: 100 })).statusCode).toBe(403);
+    expect(
+      (
+        await call(app, operatorCookie, "PUT", "/v1/platform/businesses/biz_nadie/quota", {
+          quota: 1,
+        })
+      ).statusCode,
+    ).toBe(404);
+    const stored = await db.business.findUniqueOrThrow({ where: { id: home.id } });
+    expect(stored.monthlyConversationQuota).toBeNull();
+  });
+});

@@ -183,6 +183,10 @@ export function buildApp(deps: AppDeps, options: FastifyServerOptions = {}) {
       sessionSecret: env.SESSION_SECRET,
       panelOrigin,
       now: engine.now,
+      prices: {
+        inputPerMTok: env.LLM_PRICE_INPUT_PER_MTOK,
+        outputPerMTok: env.LLM_PRICE_OUTPUT_PER_MTOK,
+      },
     }),
     { prefix: "/v1/platform" },
   );

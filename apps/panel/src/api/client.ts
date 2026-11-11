@@ -22,6 +22,7 @@ import type {
   MeResponse,
   MetricsResponse,
   PasswordChange,
+  PlatformBusiness,
   PlatformBusinessList,
   PreviewChatRequest,
   TeamResponse,
@@ -151,6 +152,10 @@ export const api = {
   platformBusinesses: () => request<PlatformBusinessList>("GET", "/v1/platform/businesses"),
   createBusiness: (body: BusinessCreate) =>
     request<BusinessCreateResponse>("POST", "/v1/platform/businesses", body),
+  setBusinessQuota: (id: string, quota: number | null) =>
+    request<PlatformBusiness>("PUT", `/v1/platform/businesses/${encodeURIComponent(id)}/quota`, {
+      quota,
+    }),
   actAs: (businessId: string | null) =>
     request<MeResponse>("POST", "/v1/platform/act-as", { businessId }),
 

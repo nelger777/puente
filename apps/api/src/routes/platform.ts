@@ -2,7 +2,10 @@ import {
   ActAsSchema,
   BusinessCreateResponseSchema,
   BusinessCreateSchema,
+  BusinessIdParamsSchema,
+  BusinessQuotaSchema,
   PlatformBusinessListSchema,
+  PlatformBusinessSchema,
 } from "@puente/shared";
 import type { FastifyInstance } from "fastify";
 import type { Db } from "../db/client";
@@ -14,7 +17,8 @@ import {
   requireSession,
 } from "../lib/auth-guard";
 import { ApiError, parseInput } from "../lib/errors";
-import { actAs, createBusiness, listBusinesses } from "../services/platform";
+import type { LlmPrices } from "../services/admin";
+import { actAs, createBusiness, listBusinesses, setBusinessQuota } from "../services/platform";
 import { meResponse } from "./auth";
 
 export interface PlatformRoutesDeps {
@@ -22,6 +26,7 @@ export interface PlatformRoutesDeps {
   sessionSecret: string;
   panelOrigin: string;
   now: () => Date;
+  prices: LlmPrices;
 }
 
 /** Platform operator API (docs/DECISIONS.md § Empresas). Nobody else gets past the guard. */
@@ -33,13 +38,24 @@ export function platformRoutes(deps: PlatformRoutesDeps) {
     app.addHook("preHandler", requirePlatformAdmin);
 
     app.get("/businesses", async () =>
-      PlatformBusinessListSchema.parse({ businesses: await listBusinesses(db, deps.now()) }),
+      PlatformBusinessListSchema.parse({
+        businesses: await listBusinesses(db, deps.now(), deps.prices),
+      }),
     );
 
     app.post("/businesses", async (request, reply) => {
       const input = parseInput(BusinessCreateSchema, request.body);
-      const created = await createBusiness(db, input, deps.now());
+      const created = await createBusiness(db, input, deps.now(), deps.prices);
       return reply.code(201).send(BusinessCreateResponseSchema.parse(created));
+    });
+
+    // Replaces the operator command set-quota (still available for scripts).
+    app.put("/businesses/:id/quota", async (request) => {
+      const { id } = parseInput(BusinessIdParamsSchema, request.params);
+      const { quota } = parseInput(BusinessQuotaSchema, request.body);
+      return PlatformBusinessSchema.parse(
+        await setBusinessQuota(db, id, quota, deps.now(), deps.prices),
+      );
     });
 
     app.post("/act-as", async (request) => {

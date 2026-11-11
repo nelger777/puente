@@ -45,7 +45,7 @@ docker compose up -d api
 
 - [ ] Crear cuenta en un proveedor SMTP (Brevo: 300 correos/día gratis; o Resend) y verificar el dominio `firefly.com.py` (registros SPF/DKIM en Hosting Paraguay).
 - [ ] En `/opt/puente/deploy/.env`: `SMTP_URL=smtps://USUARIO:CLAVE@smtp.proveedor.com:465`, `MAIL_FROM="Puente <avisos@firefly.com.py>"`, `ALERT_EMAIL=tu correo`; luego `docker compose up -d api`.
-- [ ] Verificar que lleguen los avisos de uso del plan (80 % y 100 %) al correo de avisos del negocio y a `ALERT_EMAIL`, una vez fijado un tope con `set-quota.js`.
+- [ ] Verificar que lleguen los avisos de uso del plan (80 % y 100 %) al correo de avisos del negocio y a `ALERT_EMAIL`, una vez fijado un tope (Panel → Empresas).
 - [ ] Probar: pedir "hablar con una persona" en _Probar_ no envía correo (es modo prueba); hacerlo desde la página de prueba del widget.
 
 ## La Rural Seguros (asistente Laura)
@@ -66,7 +66,7 @@ docker compose up -d api
 ## Contador mensual de conversaciones
 
 - [x] Desplegado en staging el 2026-10-03 (migración aplicada; La Rural: 4 conversaciones en septiembre y 4 en octubre). Falta mirar la tarjeta del mes en _Resumen_.
-- [ ] Si La Rural elige el plan mensual: `docker compose exec api node dist/set-quota.js la-rural 4000`. Con pago único y clave propia, dejarlo sin tope.
+- [ ] Si La Rural elige el plan mensual: Panel → Empresas → Tope mensual 4000. Con pago único y clave propia, dejarlo sin tope.
 - [ ] Cargar `ALERT_EMAIL` en `deploy/.env` para recibir los avisos de 80 % y 100 % (requiere el SMTP de la sección Correo).
 
 ## Empresas y usuarios

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { BusinessSettingsSchema, EmailSchema, UserSummarySchema } from "./admin";
+import { BusinessSettingsSchema, EmailSchema, LlmProviderSchema, UserSummarySchema } from "./admin";
 
 // Platform operator only (docs/DECISIONS.md § Empresas): list, create and enter businesses.
 
@@ -34,6 +34,13 @@ export const PlatformBusinessSchema = z.object({
   /** Current month in the business's timezone. */
   conversationsThisMonth: z.int(),
   monthlyConversationQuota: z.int().nullable(),
+  /** Customer messages this month (panel "Probar" excluded). */
+  messagesThisMonth: z.int(),
+  /** AI cost estimate this month, USD, with the server prices; 0 on free Gemini. */
+  costThisMonthUsd: z.number().nonnegative(),
+  /** Whose AI key pays: the server's ("default") or the business's own. */
+  llmProvider: LlmProviderSchema,
+  pendingHandoffs: z.int(),
 });
 export type PlatformBusiness = z.infer<typeof PlatformBusinessSchema>;
 
@@ -49,6 +56,20 @@ export const BusinessCreateResponseSchema = z.object({
   password: z.string(),
 });
 export type BusinessCreateResponse = z.infer<typeof BusinessCreateResponseSchema>;
+
+export const QUOTA_MAX = 1_000_000;
+
+/** Monthly conversation quota of a business; null = no cap. */
+export const BusinessQuotaSchema = z.object({
+  quota: z
+    .int("Un número entero")
+    .min(1, "Al menos 1")
+    .max(QUOTA_MAX, `Hasta ${QUOTA_MAX.toLocaleString("es")}`)
+    .nullable(),
+});
+export type BusinessQuota = z.infer<typeof BusinessQuotaSchema>;
+
+export const BusinessIdParamsSchema = z.object({ id: z.string().regex(/^biz_[a-z0-9]+$/) });
 
 /** null = back to the operator's own business. */
 export const ActAsSchema = z.object({ businessId: z.string().min(1).nullable() });

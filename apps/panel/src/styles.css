@@ -502,6 +502,28 @@ main {
 .assignee-filter label {
   margin-top: 0;
 }
+.usage-high {
+  color: var(--warn);
+  font-weight: 600;
+}
+.quota-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+.quota-form input {
+  width: 100px;
+  border: 1px solid var(--line);
+  background: var(--soft);
+  border-radius: 8px;
+  padding: 4px 8px;
+}
+.list-table tfoot th,
+.list-table tfoot td {
+  border-top: 2px solid var(--line);
+  font-weight: 600;
+}
 /* ---------- conversations ---------- */
 .search-bar {
   display: flex;

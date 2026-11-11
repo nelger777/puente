@@ -34,6 +34,20 @@ export interface LlmPrices {
 
 const round4 = (n: number) => Math.round(n * 10_000) / 10_000;
 
+/** AI cost estimate in USD. Gemini on the free tier costs nothing (demo use); history is priced
+ * with the business's current engine. */
+export function estimateCostUsd(
+  business: Pick<Business, "llmProvider">,
+  inputTokens: number,
+  outputTokens: number,
+  prices: LlmPrices,
+): number {
+  if (businessProvider(business) === "gemini") return 0;
+  return round4(
+    (inputTokens * prices.inputPerMTok + outputTokens * prices.outputPerMTok) / 1_000_000,
+  );
+}
+
 // Every query below filters by businessId: the session's business is the only scope.
 
 export function toBusinessResponse(
@@ -446,11 +460,7 @@ export async function getMetrics(
   const failed = failures.timeout + failures.api_error + failures.invalid_output;
   const inputTokens = tokens._sum.inputTokens ?? 0;
   const outputTokens = tokens._sum.outputTokens ?? 0;
-  // Gemini on the free tier costs nothing (demo use); history is priced with the current engine.
-  const free = businessProvider(business) === "gemini";
-  const cost = free
-    ? 0
-    : (inputTokens * prices.inputPerMTok + outputTokens * prices.outputPerMTok) / 1_000_000;
+  const cost = estimateCostUsd(business, inputTokens, outputTokens, prices);
 
   const handoffsByReason = Object.fromEntries(
     HandoffReasonSchema.options.map((r) => [r, 0]),

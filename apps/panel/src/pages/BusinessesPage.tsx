@@ -1,10 +1,16 @@
-import { BusinessCreateSchema, type BusinessCreateResponse } from "@puente/shared";
+import {
+  BusinessCreateSchema,
+  BusinessQuotaSchema,
+  type BusinessCreateResponse,
+  type LlmProvider,
+  type PlatformBusiness,
+} from "@puente/shared";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { api } from "../api/client";
 import { useAuth } from "../auth";
 import { Card, Empty, ErrorNote, Loading, PageHeader, SecretNote } from "../components/ui";
-import { formatNumber } from "../lib/format";
+import { formatNumber, formatUsd } from "../lib/format";
 import { slugify } from "../lib/slug";
 import { useApi } from "../lib/use-api";
 
@@ -32,6 +38,125 @@ const EMPTY: NewBusinessForm = {
 
 const toError = (err: unknown) => (err instanceof Error ? err : new Error(String(err)));
 
+const ENGINE_LABELS: Record<LlmProvider, string> = {
+  default: "Clave del servidor",
+  claude: "Claude, clave propia",
+  gemini: "Gemini gratis",
+};
+
+/** Conversations against the plan; from 80 % it is highlighted, as the alert e-mails do. */
+function Usage({ b }: { b: PlatformBusiness }) {
+  const quota = b.monthlyConversationQuota;
+  if (!quota) return <>{formatNumber(b.conversationsThisMonth)}</>;
+  const share = b.conversationsThisMonth / quota;
+  return (
+    <>
+      {formatNumber(b.conversationsThisMonth)} de {formatNumber(quota)}
+      <div className={`muted small ${share >= 0.8 ? "usage-high" : ""}`}>
+        {Math.round(share * 100)} % del plan
+      </div>
+    </>
+  );
+}
+
+/** Monthly quota, edited in place (replaces the set-quota command). */
+function QuotaCell({
+  b,
+  onSaved,
+}: {
+  b: PlatformBusiness;
+  onSaved: (b: PlatformBusiness) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function save(quota: number | null) {
+    const parsed = BusinessQuotaSchema.safeParse({ quota });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? "Tope inválido");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      onSaved(await api.setBusinessQuota(b.id, parsed.data.quota));
+      setEditing(false);
+    } catch (err) {
+      setError(toError(err).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!editing) {
+    return (
+      <>
+        {b.monthlyConversationQuota ? formatNumber(b.monthlyConversationQuota) : "Sin tope"}{" "}
+        <button
+          type="button"
+          className="btn ghost small"
+          aria-label={`Cambiar el tope de ${b.name}`}
+          onClick={() => {
+            setValue(b.monthlyConversationQuota ? String(b.monthlyConversationQuota) : "");
+            setError(null);
+            setEditing(true);
+          }}
+        >
+          Cambiar
+        </button>
+      </>
+    );
+  }
+  const id = `quota-${b.id}`;
+  return (
+    <form
+      className="quota-form"
+      noValidate
+      onSubmit={(e) => {
+        e.preventDefault();
+        void save(value.trim() === "" ? null : Number(value));
+      }}
+    >
+      <label htmlFor={id} className="sr-only">
+        Conversaciones por mes de {b.name}
+      </label>
+      <input
+        id={id}
+        type="number"
+        min={1}
+        step={1}
+        inputMode="numeric"
+        placeholder="Sin tope"
+        value={value}
+        aria-invalid={!!error}
+        onChange={(e) => setValue(e.target.value)}
+      />
+      <button type="submit" className="btn small" disabled={busy}>
+        Guardar
+      </button>
+      <button
+        type="button"
+        className="btn ghost small"
+        disabled={busy}
+        onClick={() => void save(null)}
+      >
+        Sin tope
+      </button>
+      <button
+        type="button"
+        className="btn ghost small"
+        disabled={busy}
+        onClick={() => setEditing(false)}
+      >
+        Cancelar
+      </button>
+      {error ? <div className="field-error">{error}</div> : null}
+    </form>
+  );
+}
+
 export function BusinessesPage() {
   const { me, actAs } = useAuth();
   const navigate = useNavigate();
@@ -46,6 +171,10 @@ export function BusinessesPage() {
   if (businesses.error) return <ErrorNote error={businesses.error} onRetry={businesses.reload} />;
   const list = businesses.data?.businesses;
   if (!list) return <Loading />;
+
+  const sum = (pick: (b: PlatformBusiness) => number) => list.reduce((n, b) => n + pick(b), 0);
+  const replace = (updated: PlatformBusiness) =>
+    businesses.setData({ businesses: list.map((b) => (b.id === updated.id ? updated : b)) });
 
   const set = (key: keyof NewBusinessForm, value: string) =>
     setForm((f) => ({
@@ -162,6 +291,10 @@ export function BusinessesPage() {
                     <th>Estado</th>
                     <th>Usuarios</th>
                     <th>Conversaciones del mes</th>
+                    <th>Mensajes del mes</th>
+                    <th>Costo de IA del mes</th>
+                    <th>Pendientes</th>
+                    <th>Tope mensual</th>
                     <th aria-label="Acciones" />
                   </tr>
                 </thead>
@@ -185,10 +318,16 @@ export function BusinessesPage() {
                         </td>
                         <td>{formatNumber(b.users)}</td>
                         <td>
-                          {formatNumber(b.conversationsThisMonth)}
-                          {b.monthlyConversationQuota
-                            ? ` de ${formatNumber(b.monthlyConversationQuota)}`
-                            : ""}
+                          <Usage b={b} />
+                        </td>
+                        <td>{formatNumber(b.messagesThisMonth)}</td>
+                        <td>
+                          {formatUsd(b.costThisMonthUsd)}
+                          <div className="muted small">{ENGINE_LABELS[b.llmProvider]}</div>
+                        </td>
+                        <td>{formatNumber(b.pendingHandoffs)}</td>
+                        <td>
+                          <QuotaCell b={b} onSaved={replace} />
                         </td>
                         <td>
                           <div className="actions">
@@ -209,6 +348,20 @@ export function BusinessesPage() {
                     );
                   })}
                 </tbody>
+                {list.length > 1 ? (
+                  <tfoot>
+                    <tr>
+                      <th scope="row">Total</th>
+                      <td />
+                      <td>{formatNumber(sum((b) => b.users))}</td>
+                      <td>{formatNumber(sum((b) => b.conversationsThisMonth))}</td>
+                      <td>{formatNumber(sum((b) => b.messagesThisMonth))}</td>
+                      <td>{formatUsd(sum((b) => b.costThisMonthUsd))}</td>
+                      <td>{formatNumber(sum((b) => b.pendingHandoffs))}</td>
+                      <td colSpan={2} />
+                    </tr>
+                  </tfoot>
+                ) : null}
               </table>
             </div>
           )}
