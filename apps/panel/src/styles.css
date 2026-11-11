@@ -495,6 +495,13 @@ main {
   margin: 8px 0 4px;
 }
 
+.assignee-filter {
+  max-width: 320px;
+  margin-bottom: 12px;
+}
+.assignee-filter label {
+  margin-top: 0;
+}
 /* ---------- conversations ---------- */
 .search-bar {
   display: flex;

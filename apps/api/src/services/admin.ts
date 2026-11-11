@@ -142,6 +142,14 @@ async function searchHandoffs(
   return { OR: or };
 }
 
+/** "me", "none" or a teammate's id. businessId already scopes the query, so another
+ * business's user id simply matches nothing. */
+function assigneeFilter(assignee: string, actorUserId: string): string | null {
+  if (assignee === "me") return actorUserId;
+  if (assignee === "none") return null;
+  return assignee;
+}
+
 export async function listHandoffs(
   db: Db,
   businessId: string,
@@ -152,8 +160,7 @@ export async function listHandoffs(
   const where: Prisma.HandoffWhereInput = {
     ...realHandoffs(businessId),
     ...(status ? { status } : {}),
-    ...(assignee === "me" ? { assignedToId: actorUserId } : {}),
-    ...(assignee === "none" ? { assignedToId: null } : {}),
+    ...(assignee ? { assignedToId: assigneeFilter(assignee, actorUserId) } : {}),
     ...(q ? { AND: await searchHandoffs(db, businessId, q) } : {}),
   };
   const rows = await db.handoff.findMany({

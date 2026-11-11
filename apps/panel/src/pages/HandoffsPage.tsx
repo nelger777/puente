@@ -2,6 +2,7 @@ import type { HandoffListQuery, HandoffStatus, HandoffSummary } from "@puente/sh
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router";
 import { api } from "../api/client";
+import { useAuth } from "../auth";
 import {
   Card,
   Empty,
@@ -12,6 +13,7 @@ import {
   StatusTag,
 } from "../components/ui";
 import { eventLabel, formatDate } from "../lib/format";
+import { useApi } from "../lib/use-api";
 import { usePending } from "../pending";
 
 const FILTERS: { key: string; label: string; status?: HandoffStatus }[] = [
@@ -20,16 +22,19 @@ const FILTERS: { key: string; label: string; status?: HandoffStatus }[] = [
   { key: "atendidas", label: "Atendidas", status: "RESOLVED" },
 ];
 
-const ASSIGNEES: { key: string; label: string; assignee?: HandoffListQuery["assignee"] }[] = [
-  { key: "todos", label: "Cualquier responsable" },
-  { key: "mios", label: "Míos", assignee: "me" },
-  { key: "sin-asignar", label: "Sin asignar", assignee: "none" },
-];
+/** The "responsable" URL value: "mios", "sin-asignar" or a teammate's id. */
+function assigneeQuery(value: string | null): HandoffListQuery["assignee"] {
+  if (value === "mios") return "me";
+  if (value === "sin-asignar") return "none";
+  return value?.startsWith("usr_") ? value : undefined;
+}
 
 export function HandoffsPage() {
   const [params, setParams] = useSearchParams();
   const filter = FILTERS.find((f) => f.key === params.get("estado")) ?? FILTERS[0];
-  const owner = ASSIGNEES.find((a) => a.key === params.get("responsable")) ?? ASSIGNEES[0];
+  const owner = params.get("responsable") ?? "";
+  const { me } = useAuth();
+  const team = useApi(() => api.team(), []);
   const q = params.get("q") ?? "";
   const { refresh } = usePending();
   const [search, setSearch] = useState(q);
@@ -40,7 +45,7 @@ export function HandoffsPage() {
 
   const query = (): HandoffListQuery => ({
     status: filter?.status,
-    assignee: owner?.assignee,
+    assignee: assigneeQuery(owner),
     q: q || undefined,
   });
 
@@ -62,7 +67,7 @@ export function HandoffsPage() {
     void load();
     setSearch(q);
     refresh();
-  }, [filter?.key, owner?.key, q, refresh]);
+  }, [filter?.key, owner, q, refresh]);
 
   function setParam(name: string, value: string | null) {
     const next = new URLSearchParams(params);
@@ -95,18 +100,24 @@ export function HandoffsPage() {
           </button>
         ))}
       </div>
-      <div className="filters" role="group" aria-label="Filtrar por responsable">
-        {ASSIGNEES.map((a) => (
-          <button
-            key={a.key}
-            type="button"
-            className="chip"
-            aria-pressed={a.key === owner?.key}
-            onClick={() => setParam("responsable", a.key === "todos" ? null : a.key)}
-          >
-            {a.label}
-          </button>
-        ))}
+      <div className="field assignee-filter">
+        <label htmlFor="assignee-filter">Responsable</label>
+        <select
+          id="assignee-filter"
+          value={owner}
+          onChange={(e) => setParam("responsable", e.target.value || null)}
+        >
+          <option value="">Cualquiera</option>
+          <option value="mios">Míos</option>
+          <option value="sin-asignar">Sin asignar</option>
+          {team.data?.members
+            .filter((m) => m.id !== me?.user.id)
+            .map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.email}
+              </option>
+            ))}
+        </select>
       </div>
       <form className="search-bar" role="search" onSubmit={submitSearch}>
         <label htmlFor="handoff-search" className="sr-only">

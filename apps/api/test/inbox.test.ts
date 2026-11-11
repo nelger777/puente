@@ -117,6 +117,11 @@ describe("assignee", () => {
     expect(await codes(app, agentCookie, "?assignee=me")).toEqual([mine]);
     expect(await codes(app, adminCookie, "?assignee=me")).toEqual([theirs]);
     expect(await codes(app, agentCookie, "?assignee=none")).toHaveLength(1);
+    expect(await codes(app, agentCookie, `?assignee=${admin.id}`)).toEqual([theirs]);
+    expect(await codes(app, adminCookie, `?assignee=${agent.id}`)).toEqual([mine]);
+    expect(
+      (await call(app, agentCookie, "GET", "/v1/admin/handoffs?assignee=alguien")).statusCode,
+    ).toBe(400);
 
     const cleared = HandoffDetailSchema.parse(
       (

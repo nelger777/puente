@@ -285,8 +285,8 @@ export const KNOWLEDGE_TOKEN_WARNING = 20_000;
 
 export const HandoffListQuerySchema = z.object({
   status: HandoffStatusSchema.optional(),
-  /** "me" = assigned to the signed-in user; "none" = unassigned. */
-  assignee: z.enum(["me", "none"]).optional(),
+  /** "me" = assigned to the signed-in user; "none" = unassigned; or a user id of the team. */
+  assignee: z.union([z.enum(["me", "none"]), z.string().regex(/^usr_[a-z0-9]+$/)]).optional(),
   /** A case code, a phone (any formatting), a name or words of the summary. */
   q: z.string().trim().min(1).max(100).optional(),
   cursor: z.string().max(64).optional(),
