@@ -5,6 +5,7 @@
 import {
   BusinessResponseSchema,
   ChatResponseSchema,
+  ConversationListResponseSchema,
   HandoffListResponseSchema,
   KnowledgeResponseSchema,
   MetricsResponseSchema,
@@ -185,6 +186,27 @@ describe("panel API", () => {
     const page = await panel(b.cookie, "GET", `/v1/admin/handoffs?cursor=${aHandoff.id}`);
     const items = page.statusCode === 200 ? HandoffListResponseSchema.parse(page.json()).items : [];
     expect(items.map((h) => h.code)).not.toContain(a.code);
+  });
+
+  it("does not let B list, read or delete A's conversations", async () => {
+    const page = ConversationListResponseSchema.parse(
+      (await panel(b.cookie, "GET", "/v1/admin/conversations")).json(),
+    );
+    const ids = page.items.map((c) => c.id);
+    expect(ids).toContain(b.conversationId);
+    const owners = await db.conversation.findMany({
+      where: { id: { in: ids } },
+      select: { businessId: true },
+    });
+    expect(owners.every((o) => o.businessId === b.businessId)).toBe(true);
+    expect(
+      (await panel(b.cookie, "GET", `/v1/admin/conversations/${a.conversationId}`)).statusCode,
+    ).toBe(404);
+    const del = await panel(b.cookie, "POST", "/v1/admin/conversations/delete", {
+      ids: [a.conversationId],
+    });
+    expect(del.json()).toEqual({ deleted: 0 });
+    expect(await db.conversation.count({ where: { id: a.conversationId } })).toBe(1);
   });
 
   it("does not let B review A's cases from Sin respuesta", async () => {

@@ -342,6 +342,67 @@ main {
   margin: 8px 0 4px;
 }
 
+/* ---------- conversations ---------- */
+.search-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.search-bar input {
+  flex: 1 1 220px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  background: var(--soft);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.bulk-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 34px;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+.conv-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.conv-row > input {
+  margin-top: 3px;
+  flex: none;
+}
+.conv-row > .case-row {
+  flex: 1;
+  min-width: 0;
+}
+.conv-row p {
+  overflow-wrap: anywhere;
+}
+.plain-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.btn.danger {
+  background: var(--bad);
+  color: #fff;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 /* ---------- case ---------- */
 .case-grid {
   display: grid;

@@ -3,6 +3,12 @@ import {
   BusinessResponseSchema,
   BusinessSettingsSchema,
   ChatResponseSchema,
+  ConversationDeleteResponseSchema,
+  ConversationDeleteSchema,
+  ConversationDetailSchema,
+  ConversationIdParamsSchema,
+  ConversationListQuerySchema,
+  ConversationListResponseSchema,
   HandoffCodeParamsSchema,
   HandoffDetailSchema,
   HandoffListQuerySchema,
@@ -41,6 +47,7 @@ import {
   updateBusiness,
   type LlmPrices,
 } from "../services/admin";
+import { deleteConversations, getConversation, listConversations } from "../services/conversations";
 import { avatarUpdatedAt, avatarUrl, removeAvatar, saveAvatar } from "../services/avatar";
 import type { Business } from "../generated/prisma/client";
 import type { SecretBox } from "../lib/secrets";
@@ -147,6 +154,27 @@ export function adminRoutes(deps: AdminRoutesDeps) {
       const auth = authOf(request);
       return KnowledgeResponseSchema.parse(
         await addUnansweredToKnowledge(db, auth.businessId, codes, item, auth.userId),
+      );
+    });
+
+    // Every role reads conversations (the inbox already shows them); only ADMIN deletes.
+    app.get("/conversations", async (request) => {
+      const query = parseInput(ConversationListQuerySchema, request.query);
+      const business = await getBusiness(db, authOf(request).businessId);
+      return ConversationListResponseSchema.parse(await listConversations(db, business, query));
+    });
+
+    app.get("/conversations/:id", async (request) => {
+      const { id } = parseInput(ConversationIdParamsSchema, request.params);
+      return ConversationDetailSchema.parse(
+        await getConversation(db, authOf(request).businessId, id),
+      );
+    });
+
+    app.post("/conversations/delete", adminOnly, async (request) => {
+      const { ids } = parseInput(ConversationDeleteSchema, request.body);
+      return ConversationDeleteResponseSchema.parse(
+        await deleteConversations(db, authOf(request).businessId, ids),
       );
     });
 

@@ -5,6 +5,10 @@ import type {
   BusinessResponse,
   BusinessSettings,
   ChatResponse,
+  ConversationDeleteResponse,
+  ConversationDetail,
+  ConversationListQuery,
+  ConversationListResponse,
   HandoffDetail,
   HandoffListResponse,
   HandoffStatus,
@@ -105,6 +109,13 @@ export const api = {
     request<void>("POST", "/v1/admin/unanswered/dismiss", { codes }),
   addUnanswered: (body: UnansweredAdd) =>
     request<KnowledgeResponse>("POST", "/v1/admin/unanswered/knowledge", body),
+
+  conversations: (query: ConversationListQuery) =>
+    request<ConversationListResponse>("GET", `/v1/admin/conversations${qs(query)}`),
+  conversation: (id: string) =>
+    request<ConversationDetail>("GET", `/v1/admin/conversations/${encodeURIComponent(id)}`),
+  deleteConversations: (ids: string[]) =>
+    request<ConversationDeleteResponse>("POST", "/v1/admin/conversations/delete", { ids }),
 
   handoffs: (status?: HandoffStatus, cursor?: string) =>
     request<HandoffListResponse>("GET", `/v1/admin/handoffs${qs({ status, cursor })}`),

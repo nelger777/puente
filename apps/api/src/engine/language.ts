@@ -1,7 +1,8 @@
+import type { CustomerLanguage } from "@puente/shared";
 import { normalizeText } from "../lib/text";
 
 /** Languages with fixed replies and an explicit hint to the model; others are left to it. */
-export type CustomerLanguage = "es" | "en" | "ja";
+export type { CustomerLanguage };
 
 export const LANGUAGE_NAMES: Record<CustomerLanguage, string> = {
   es: "español",

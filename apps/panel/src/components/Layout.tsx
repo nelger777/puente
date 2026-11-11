@@ -17,6 +17,7 @@ function Nav() {
   }[] = [
     { to: "/", label: "Resumen" },
     { to: "/derivaciones", label: "Derivaciones", badge: count },
+    { to: "/conversaciones", label: "Conversaciones" },
     { to: "/probar", label: "Probar" },
     { to: "/configuracion", label: "Configuración" },
     { to: "/base", label: "Base de conocimiento", only: "admin" },

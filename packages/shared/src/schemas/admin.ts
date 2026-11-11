@@ -300,6 +300,80 @@ export type HandoffDetail = z.infer<typeof HandoffDetailSchema>;
 
 export const HandoffPatchSchema = z.object({ status: HandoffStatusSchema });
 
+// ---------- Conversations ----------
+
+export const CustomerLanguageSchema = z.enum(["es", "en", "ja"]);
+export type CustomerLanguage = z.infer<typeof CustomerLanguageSchema>;
+
+export const ConversationOutcomeSchema = z.enum(["resolved", "handed_off"]);
+export type ConversationOutcome = z.infer<typeof ConversationOutcomeSchema>;
+
+export const ConversationIdSchema = z.string().regex(/^conv_[a-z0-9]+$/);
+export const ConversationIdParamsSchema = z.object({ id: ConversationIdSchema });
+
+export const ConversationListQuerySchema = z.object({
+  outcome: ConversationOutcomeSchema.optional(),
+  /** Local days of the business, on the conversation's start. */
+  from: z.iso.date().optional(),
+  to: z.iso.date().optional(),
+  /** Text in any message of the conversation, or a case code. */
+  q: z.string().trim().min(1).max(100).optional(),
+  cursor: z.string().max(64).optional(),
+});
+export type ConversationListQuery = z.infer<typeof ConversationListQuerySchema>;
+
+const ConversationHandoffSchema = z.object({
+  code: HandoffCodeSchema,
+  reason: HandoffReasonSchema,
+  status: HandoffStatusSchema,
+  createdAt: z.iso.datetime(),
+});
+
+export const ConversationSummarySchema = z.object({
+  id: ConversationIdSchema,
+  startedAt: z.iso.datetime(),
+  lastMessageAt: z.iso.datetime(),
+  userMessages: z.int(),
+  /** The customer's first message, shortened. */
+  preview: z.string(),
+  /** Detected from the customer's messages; null when they do not tell. */
+  language: CustomerLanguageSchema.nullable(),
+  /** The latest handoff; null = resolved by the assistant. */
+  handoff: ConversationHandoffSchema.nullable(),
+});
+export type ConversationSummary = z.infer<typeof ConversationSummarySchema>;
+
+export const ConversationListResponseSchema = z.object({
+  items: z.array(ConversationSummarySchema),
+  nextCursor: z.string().nullable(),
+});
+export type ConversationListResponse = z.infer<typeof ConversationListResponseSchema>;
+
+export const ConversationDetailSchema = ConversationSummarySchema.omit({ handoff: true }).extend({
+  originDomain: z.string(),
+  messages: z.array(
+    z.object({
+      id: z.string(),
+      role: z.enum(["USER", "ASSISTANT", "SYSTEM"]),
+      content: z.string(),
+      createdAt: z.iso.datetime(),
+    }),
+  ),
+  handoffs: z.array(ConversationHandoffSchema),
+});
+export type ConversationDetail = z.infer<typeof ConversationDetailSchema>;
+
+export const CONVERSATION_DELETE_MAX = 100;
+
+/** Deletes the conversations with their messages and handoffs; cannot be undone. */
+export const ConversationDeleteSchema = z.object({
+  ids: z.array(ConversationIdSchema).min(1).max(CONVERSATION_DELETE_MAX),
+});
+export type ConversationDelete = z.infer<typeof ConversationDeleteSchema>;
+
+export const ConversationDeleteResponseSchema = z.object({ deleted: z.int() });
+export type ConversationDeleteResponse = z.infer<typeof ConversationDeleteResponseSchema>;
+
 // ---------- Metrics ----------
 
 export const MetricsQuerySchema = z.object({

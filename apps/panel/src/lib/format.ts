@@ -1,4 +1,4 @@
-import { HANDOFF_REASON_LABELS, type HandoffReason } from "@puente/shared";
+import { HANDOFF_REASON_LABELS, type CustomerLanguage, type HandoffReason } from "@puente/shared";
 
 export const reasonLabel = (reason: HandoffReason) => HANDOFF_REASON_LABELS[reason];
 
@@ -12,6 +12,12 @@ const EVENT_LABELS: Record<string, string> = {
   email_sent: "Aviso enviado por correo",
   knowledge_added: "Respuesta agregada a la base",
   knowledge_dismissed: "Descartada en Sin respuesta",
+};
+
+export const LANGUAGE_LABELS: Record<CustomerLanguage, string> = {
+  es: "Español",
+  en: "Inglés",
+  ja: "Japonés",
 };
 
 export const eventLabel = (type: string) => EVENT_LABELS[type] ?? type;

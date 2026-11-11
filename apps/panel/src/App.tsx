@@ -6,6 +6,8 @@ import { AccountPage } from "./pages/AccountPage";
 import { Loading } from "./components/ui";
 import { BusinessesPage } from "./pages/BusinessesPage";
 import { CasePage } from "./pages/CasePage";
+import { ConversationPage } from "./pages/ConversationPage";
+import { ConversationsPage } from "./pages/ConversationsPage";
 import { HandoffsPage } from "./pages/HandoffsPage";
 import { InstallPage } from "./pages/InstallPage";
 import { KnowledgePage } from "./pages/KnowledgePage";
@@ -47,6 +49,8 @@ export function App() {
           <Route index element={<SummaryPage />} />
           <Route path="derivaciones" element={<HandoffsPage />} />
           <Route path="derivaciones/:code" element={<CasePage />} />
+          <Route path="conversaciones" element={<ConversationsPage />} />
+          <Route path="conversaciones/:id" element={<ConversationPage />} />
           <Route path="probar" element={<TryPage />} />
           <Route path="configuracion" element={<SettingsPage />} />
           <Route
