@@ -363,7 +363,11 @@ export const HandoffPatchSchema = z
   .object({
     status: HandoffStatusSchema.optional(),
     /** A user of the business, or null to unassign. */
-    assigneeId: z.string().regex(/^usr_[a-z0-9]+$/).nullable().optional(),
+    assigneeId: z
+      .string()
+      .regex(/^usr_[a-z0-9]+$/)
+      .nullable()
+      .optional(),
   })
   .refine((p) => p.status !== undefined || p.assigneeId !== undefined, {
     message: "Nada que cambiar",
