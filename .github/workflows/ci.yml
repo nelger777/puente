@@ -81,7 +81,10 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @puente/widget exec playwright install --with-deps chromium
+      # Without --with-deps: the runner image already has Chrome's system libraries, and apt
+      # mirrors have hung this step for the whole job timeout. Fail fast if it stalls again.
+      - run: pnpm --filter @puente/widget exec playwright install chromium
+        timeout-minutes: 5
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()
