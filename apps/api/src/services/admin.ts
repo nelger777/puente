@@ -7,8 +7,6 @@ import {
   type HandoffReason,
   type HandoffStatus,
   type HandoffSummary,
-  type KnowledgeItemInput,
-  type KnowledgeResponse,
   type MetricsResponse,
 } from "@puente/shared";
 import type { Db } from "../db/client";
@@ -80,36 +78,6 @@ export async function getBusiness(db: Db, businessId: string): Promise<Business>
 
 export function updateBusiness(db: Db, businessId: string, settings: BusinessSettings) {
   return db.business.update({ where: { id: businessId }, data: settings });
-}
-
-export async function listKnowledge(db: Db, businessId: string): Promise<KnowledgeResponse> {
-  const items = await db.knowledgeItem.findMany({
-    where: { businessId },
-    orderBy: { position: "asc" },
-    select: { id: true, question: true, answer: true, position: true },
-  });
-  return { items };
-}
-
-/** Replaces the whole knowledge base atomically (docs/SPEC.md §4). */
-export async function replaceKnowledge(
-  db: Db,
-  businessId: string,
-  items: KnowledgeItemInput[],
-): Promise<KnowledgeResponse> {
-  await db.$transaction([
-    db.knowledgeItem.deleteMany({ where: { businessId } }),
-    db.knowledgeItem.createMany({
-      data: items.map((item, position) => ({
-        id: newId("kb"),
-        businessId,
-        question: item.question,
-        answer: item.answer,
-        position,
-      })),
-    }),
-  ]);
-  return listKnowledge(db, businessId);
 }
 
 const summaryInclude = {

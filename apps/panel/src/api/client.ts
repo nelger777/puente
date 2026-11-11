@@ -14,6 +14,7 @@ import type {
   HandoffStatus,
   KnowledgeItemInput,
   KnowledgeResponse,
+  KnowledgeVersionList,
   LlmSettings,
   LlmTestResponse,
   LoginRequest,
@@ -103,6 +104,12 @@ export const api = {
   knowledge: () => request<KnowledgeResponse>("GET", "/v1/admin/knowledge"),
   replaceKnowledge: (items: KnowledgeItemInput[]) =>
     request<KnowledgeResponse>("PUT", "/v1/admin/knowledge", { items }),
+  knowledgeVersions: () => request<KnowledgeVersionList>("GET", "/v1/admin/knowledge/versions"),
+  restoreKnowledgeVersion: (id: string) =>
+    request<KnowledgeResponse>(
+      "POST",
+      `/v1/admin/knowledge/versions/${encodeURIComponent(id)}/restore`,
+    ),
 
   unanswered: () => request<UnansweredListResponse>("GET", "/v1/admin/unanswered"),
   dismissUnanswered: (codes: string[]) =>

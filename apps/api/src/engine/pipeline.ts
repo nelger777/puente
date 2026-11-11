@@ -183,7 +183,7 @@ export async function handleChat(
   const knowledge = await db.knowledgeItem.findMany({
     where: { businessId: business.id },
     orderBy: { position: "asc" },
-    select: { question: true, answer: true },
+    select: { question: true, answer: true, category: true },
   });
   const route = deps.llmFor(business);
   const result = await callLlm(

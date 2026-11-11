@@ -11,42 +11,43 @@ datasource db {
 }
 
 model Business {
-  id                       String          @id // biz_
-  slug                     String          @unique
+  id                       String             @id // biz_
+  slug                     String             @unique
   name                     String
   kind                     String
   botName                  String
-  voice                    String          @default("tu") // "tu" | "vos": how the assistant addresses customers
-  llmProvider              String          @default("default") // "default" (server key) | "claude" | "gemini"
+  voice                    String             @default("tu") // "tu" | "vos": how the assistant addresses customers
+  llmProvider              String             @default("default") // "default" (server key) | "claude" | "gemini"
   llmApiKeySealed          String? // own AI key, AES-256-GCM under SECRETS_KEY; never returned by the API
   llmApiKeyLast4           String? // shown in the panel to recognize the saved key
-  brandColor               String          @default("#1F5FBF")
+  brandColor               String             @default("#1F5FBF")
   whatsappNumber           String // digits only, with country code
   /// Handoffs outside opening hours go here; null = whatsappNumber at all hours.
   offHoursWhatsappNumber   String?
   notifyEmail              String
-  timezone                 String          @default("America/Asuncion")
+  timezone                 String             @default("America/Asuncion")
   hours                    Json // { days: number[] (0=Sunday), from: "08:00", to: "17:30" }
   offHoursMessage          String
   greeting                 String
-  suggestions              String[]        @default([])
+  suggestions              String[]           @default([])
   sensitiveTopics          String[]
   allowedDomains           String[]
-  maxMessagesPerConv       Int             @default(20)
+  maxMessagesPerConv       Int                @default(20)
   /// Conversations per month in the commercial plan; null = no cap. Set by the operator
   /// (scripts/set-quota.ts), never from the panel. Over the cap the assistant keeps answering.
   monthlyConversationQuota Int?
-  dailyMessageCap          Int             @default(2000)
-  publicKey                String          @unique
-  active                   Boolean         @default(true)
-  createdAt                DateTime        @default(now())
+  dailyMessageCap          Int                @default(2000)
+  publicKey                String             @unique
+  active                   Boolean            @default(true)
+  createdAt                DateTime           @default(now())
   knowledge                KnowledgeItem[]
+  knowledgeVersions        KnowledgeVersion[]
   conversations            Conversation[]
   handoffs                 Handoff[]
   users                    User[]
   avatar                   BusinessAvatar?
   usageMonths              UsageMonth[]
-  actingSessions           Session[]       @relation("ActingBusiness")
+  actingSessions           Session[]          @relation("ActingBusiness")
 }
 
 /// Assistant picture shown in the widget header (kept apart so chat queries never load it).
@@ -78,10 +79,27 @@ model KnowledgeItem {
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   question   String
   answer     String
+  /// Free label to organize the panel ("Autos", "Siniestros"); null = no category.
+  category   String?
   position   Int
   updatedAt  DateTime @updatedAt
 
   @@index([businessId, position])
+}
+
+/// The whole knowledge base as it was before a change, to undo it. The last 10 are kept.
+model KnowledgeVersion {
+  id         String   @id // kbv_
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  /// [{ question, answer, category }] in order.
+  items      Json
+  itemCount  Int
+  /// Who made the change that replaced this version (a userId); null = unknown.
+  replacedBy String?
+  createdAt  DateTime @default(now())
+
+  @@index([businessId, createdAt])
 }
 
 model Conversation {

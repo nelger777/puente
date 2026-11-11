@@ -12,7 +12,8 @@ const VOICE_RULE = {
   tu: "- En español, tratas al cliente de tú.",
   vos: "- En español, tratás al cliente de vos, como se habla en Paraguay (completá, podés, indicanos); nunca de tú ni de usted.",
 } as const;
-type PromptKnowledge = Pick<KnowledgeItem, "question" | "answer">;
+type PromptKnowledge = Pick<KnowledgeItem, "question" | "answer"> &
+  Partial<Pick<KnowledgeItem, "category">>;
 
 /**
  * System prompt from docs/SPEC.md §5. Fixed rules first, business data after, nothing
@@ -26,7 +27,12 @@ export function buildSystemPrompt(
 ): string {
   const topics = business.sensitiveTopics.length ? business.sensitiveTopics.join(", ") : "ninguno";
   const kb = knowledge.length
-    ? knowledge.map((k, i) => `${i + 1}. P: ${k.question}\n   R: ${k.answer}`).join("\n")
+    ? knowledge
+        .map((k, i) => {
+          const category = k.category ? `[${k.category}] ` : "";
+          return `${i + 1}. ${category}P: ${k.question}\n   R: ${k.answer}`;
+        })
+        .join("\n")
     : "(vacía)";
 
   return `Eres ${business.botName}, asistente virtual de "${business.name}" (${business.kind}). Respondes en el idioma del cliente (español, inglés, japonés u otro), cordial y breve (máximo 3 frases).

@@ -757,6 +757,36 @@ main {
   gap: 4px;
   margin-top: 10px;
 }
+.kb-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.kb-filters .field label {
+  margin-top: 0;
+}
+.kb-category input {
+  max-width: 320px;
+}
+.import-errors {
+  color: var(--bad);
+  font-size: 0.85rem;
+  margin: 6px 0;
+  padding-left: 18px;
+}
+.version-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+@media (max-width: 640px) {
+  .kb-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .meter {
   font-size: 0.85rem;
   color: var(--muted);

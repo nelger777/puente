@@ -192,9 +192,20 @@ export const AvatarUploadSchema = z.object({
 
 // ---------- Knowledge base ----------
 
+export const KNOWLEDGE_CATEGORY_MAX = 40;
+
+/** Empty or blank = no category. */
+export const KnowledgeCategorySchema = z
+  .string()
+  .trim()
+  .max(KNOWLEDGE_CATEGORY_MAX, `Máximo ${KNOWLEDGE_CATEGORY_MAX} caracteres`)
+  .nullish()
+  .transform((c) => c || null);
+
 export const KnowledgeItemInputSchema = z.object({
   question: text(300),
   answer: text(2000),
+  category: KnowledgeCategorySchema,
 });
 export type KnowledgeItemInput = z.infer<typeof KnowledgeItemInputSchema>;
 
@@ -205,9 +216,36 @@ export const KnowledgePutSchema = z.object({
 });
 
 export const KnowledgeResponseSchema = z.object({
-  items: z.array(KnowledgeItemInputSchema.extend({ id: z.string(), position: z.int() })),
+  items: z.array(
+    z.object({
+      id: z.string(),
+      position: z.int(),
+      question: z.string(),
+      answer: z.string(),
+      category: z.string().nullable(),
+    }),
+  ),
 });
 export type KnowledgeResponse = z.infer<typeof KnowledgeResponseSchema>;
+
+/** Kept versions of the base, newest first: each is the base as it was before a change. */
+export const KNOWLEDGE_VERSIONS_KEPT = 10;
+
+export const KnowledgeVersionListSchema = z.object({
+  versions: z.array(
+    z.object({
+      id: z.string(),
+      /** When it was replaced. */
+      createdAt: z.iso.datetime(),
+      itemCount: z.int(),
+      /** E-mail of who replaced it; null when unknown or the user no longer exists. */
+      replacedBy: z.string().nullable(),
+    }),
+  ),
+});
+export type KnowledgeVersionList = z.infer<typeof KnowledgeVersionListSchema>;
+
+export const KnowledgeVersionParamsSchema = z.object({ id: z.string().regex(/^kbv_[a-z0-9]+$/) });
 
 // ---------- Unanswered questions (NO_INFORMATION handoffs not yet reviewed) ----------
 

@@ -16,6 +16,8 @@ import {
   HandoffPatchSchema,
   KnowledgePutSchema,
   KnowledgeResponseSchema,
+  KnowledgeVersionListSchema,
+  KnowledgeVersionParamsSchema,
   LlmSettingsSchema,
   LlmTestResponseSchema,
   MetricsQuerySchema,
@@ -40,14 +42,18 @@ import {
   getHandoff,
   getMetrics,
   listHandoffs,
-  listKnowledge,
-  replaceKnowledge,
   setHandoffStatus,
   toBusinessResponse,
   updateBusiness,
   type LlmPrices,
 } from "../services/admin";
 import { deleteConversations, getConversation, listConversations } from "../services/conversations";
+import {
+  listKnowledge,
+  listKnowledgeVersions,
+  replaceKnowledge,
+  restoreKnowledgeVersion,
+} from "../services/knowledge";
 import { avatarUpdatedAt, avatarUrl, removeAvatar, saveAvatar } from "../services/avatar";
 import type { Business } from "../generated/prisma/client";
 import type { SecretBox } from "../lib/secrets";
@@ -133,7 +139,20 @@ export function adminRoutes(deps: AdminRoutesDeps) {
     app.put("/knowledge", { ...adminOnly, bodyLimit: 1024 * 1024 }, async (request) => {
       const { items } = parseInput(KnowledgePutSchema, request.body);
       return KnowledgeResponseSchema.parse(
-        await replaceKnowledge(db, authOf(request).businessId, items),
+        await replaceKnowledge(db, authOf(request).businessId, items, authOf(request).userId),
+      );
+    });
+
+    // Undo: every save keeps the base it replaced; restoring one keeps the current base too.
+    app.get("/knowledge/versions", adminOnly, async (request) =>
+      KnowledgeVersionListSchema.parse(await listKnowledgeVersions(db, authOf(request).businessId)),
+    );
+
+    app.post("/knowledge/versions/:id/restore", adminOnly, async (request) => {
+      const { id } = parseInput(KnowledgeVersionParamsSchema, request.params);
+      const auth = authOf(request);
+      return KnowledgeResponseSchema.parse(
+        await restoreKnowledgeVersion(db, auth.businessId, id, auth.userId),
       );
     });
 

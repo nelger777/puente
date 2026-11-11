@@ -8,7 +8,7 @@ import {
 import type { Db } from "../db/client";
 import { ApiError } from "../lib/errors";
 import { newId } from "../lib/ids";
-import { listKnowledge } from "./admin";
+import { listKnowledge, snapshotKnowledge } from "./knowledge";
 
 /** Handoff events that take a case out of "Sin respuesta". */
 export const KNOWLEDGE_ADDED = "knowledge_added";
@@ -122,12 +122,14 @@ export async function addUnansweredToKnowledge(
         `La base ya tiene ${KNOWLEDGE_MAX_ITEMS} preguntas. Quita o une alguna antes de agregar otra.`,
       );
     }
+    await snapshotKnowledge(tx, businessId, actorUserId);
     await tx.knowledgeItem.create({
       data: {
         id: newId("kb"),
         businessId,
         question: item.question,
         answer: item.answer,
+        category: item.category,
         position: (_max.position ?? -1) + 1,
       },
     });

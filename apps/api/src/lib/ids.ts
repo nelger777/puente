@@ -4,6 +4,7 @@ import { createId } from "@paralleldrive/cuid2";
 export const ID_PREFIXES = {
   business: "biz",
   knowledgeItem: "kb",
+  knowledgeVersion: "kbv",
   conversation: "conv",
   message: "msg",
   handoff: "hof",
