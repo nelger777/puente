@@ -129,6 +129,11 @@ nav a.active {
   font-weight: 700;
   padding: 0 7px;
 }
+.unanswered-q {
+  margin: 0 0 4px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
 .side-foot {
   margin-top: auto;
   display: flex;

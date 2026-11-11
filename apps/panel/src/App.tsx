@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router";
 import { AuthProvider, useAuth, useIsAdmin, useIsPlatformAdmin } from "./auth";
 import { Layout } from "./components/Layout";
+import { AccountPage } from "./pages/AccountPage";
 import { Loading } from "./components/ui";
 import { BusinessesPage } from "./pages/BusinessesPage";
 import { CasePage } from "./pages/CasePage";
@@ -12,6 +13,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { SummaryPage } from "./pages/SummaryPage";
 import { TryPage } from "./pages/TryPage";
+import { UnansweredPage } from "./pages/UnansweredPage";
 import { UsersPage } from "./pages/UsersPage";
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -56,6 +58,14 @@ export function App() {
             }
           />
           <Route
+            path="sin-respuesta"
+            element={
+              <AdminOnly>
+                <UnansweredPage />
+              </AdminOnly>
+            }
+          />
+          <Route
             path="usuarios"
             element={
               <AdminOnly>
@@ -64,6 +74,7 @@ export function App() {
             }
           />
           <Route path="instalacion" element={<InstallPage />} />
+          <Route path="cuenta" element={<AccountPage />} />
           <Route
             path="empresas"
             element={

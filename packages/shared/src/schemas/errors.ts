@@ -9,6 +9,7 @@ export const ApiErrorCodeSchema = z.enum([
   "unauthorized",
   "forbidden",
   "invalid_credentials",
+  "wrong_password",
   "too_many_attempts",
   "user_disabled",
   "user_not_found",
@@ -17,6 +18,7 @@ export const ApiErrorCodeSchema = z.enum([
   "last_admin",
   "cannot_change_self",
   "conflict",
+  "knowledge_full",
   "not_found",
   "internal_error",
 ]);

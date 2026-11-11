@@ -26,6 +26,23 @@ export const LoginRequestSchema = z.object({
 });
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
 
+export const PASSWORD_MIN_LENGTH = 10;
+
+/** The signed-in user changes their own password; their other sessions are closed. */
+export const PasswordChangeSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Obligatorio").max(200),
+    newPassword: z
+      .string()
+      .min(PASSWORD_MIN_LENGTH, `Mínimo ${PASSWORD_MIN_LENGTH} caracteres`)
+      .max(200, "Máximo 200 caracteres"),
+  })
+  .refine((p) => p.newPassword !== p.currentPassword, {
+    message: "Tiene que ser distinta de la actual",
+    path: ["newPassword"],
+  });
+export type PasswordChange = z.infer<typeof PasswordChangeSchema>;
+
 export const MeResponseSchema = z.object({
   user: z.object({
     id: z.string(),
@@ -181,14 +198,44 @@ export const KnowledgeItemInputSchema = z.object({
 });
 export type KnowledgeItemInput = z.infer<typeof KnowledgeItemInputSchema>;
 
+export const KNOWLEDGE_MAX_ITEMS = 200;
+
 export const KnowledgePutSchema = z.object({
-  items: z.array(KnowledgeItemInputSchema).max(200),
+  items: z.array(KnowledgeItemInputSchema).max(KNOWLEDGE_MAX_ITEMS),
 });
 
 export const KnowledgeResponseSchema = z.object({
   items: z.array(KnowledgeItemInputSchema.extend({ id: z.string(), position: z.int() })),
 });
 export type KnowledgeResponse = z.infer<typeof KnowledgeResponseSchema>;
+
+// ---------- Unanswered questions (NO_INFORMATION handoffs not yet reviewed) ----------
+
+export const UnansweredQuestionSchema = z.object({
+  /** The customer's own words, in their language. */
+  question: z.string(),
+  /** The team summary of the latest case, in Spanish. */
+  summary: z.string(),
+  /** Cases that asked the same thing; reviewing the group reviews all of them. */
+  codes: z.array(HandoffCodeSchema).min(1),
+  lastAt: z.iso.datetime(),
+});
+export type UnansweredQuestion = z.infer<typeof UnansweredQuestionSchema>;
+
+export const UnansweredListResponseSchema = z.object({
+  items: z.array(UnansweredQuestionSchema),
+});
+export type UnansweredListResponse = z.infer<typeof UnansweredListResponseSchema>;
+
+export const UnansweredDismissSchema = z.object({
+  codes: z.array(HandoffCodeSchema).min(1).max(200),
+});
+export type UnansweredDismiss = z.infer<typeof UnansweredDismissSchema>;
+
+export const UnansweredAddSchema = UnansweredDismissSchema.extend({
+  item: KnowledgeItemInputSchema,
+});
+export type UnansweredAdd = z.infer<typeof UnansweredAddSchema>;
 
 /** The panel meter: ~1 token per 4 characters (docs/SPEC.md §7). */
 export function estimateTokens(chars: number): number {

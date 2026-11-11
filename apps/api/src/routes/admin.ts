@@ -15,6 +15,9 @@ import {
   MetricsQuerySchema,
   MetricsResponseSchema,
   PreviewChatRequestSchema,
+  UnansweredAddSchema,
+  UnansweredDismissSchema,
+  UnansweredListResponseSchema,
   UserCreateSchema,
   UserIdParamsSchema,
   UserListResponseSchema,
@@ -42,6 +45,11 @@ import { avatarUpdatedAt, avatarUrl, removeAvatar, saveAvatar } from "../service
 import type { Business } from "../generated/prisma/client";
 import type { SecretBox } from "../lib/secrets";
 import { testLlm, updateLlmSettings } from "../services/llm-settings";
+import {
+  addUnansweredToKnowledge,
+  dismissUnanswered,
+  listUnanswered,
+} from "../services/unanswered";
 import { createUser, listUsers, resetPassword, updateUser } from "../services/users";
 
 export interface AdminRoutesDeps extends EngineDeps {
@@ -119,6 +127,26 @@ export function adminRoutes(deps: AdminRoutesDeps) {
       const { items } = parseInput(KnowledgePutSchema, request.body);
       return KnowledgeResponseSchema.parse(
         await replaceKnowledge(db, authOf(request).businessId, items),
+      );
+    });
+
+    // "Sin respuesta": what the assistant could not answer, to grow the knowledge base.
+    app.get("/unanswered", adminOnly, async (request) =>
+      UnansweredListResponseSchema.parse(await listUnanswered(db, authOf(request).businessId)),
+    );
+
+    app.post("/unanswered/dismiss", adminOnly, async (request, reply) => {
+      const { codes } = parseInput(UnansweredDismissSchema, request.body);
+      const auth = authOf(request);
+      await dismissUnanswered(db, auth.businessId, codes, auth.userId);
+      return reply.code(204).send();
+    });
+
+    app.post("/unanswered/knowledge", adminOnly, async (request) => {
+      const { codes, item } = parseInput(UnansweredAddSchema, request.body);
+      const auth = authOf(request);
+      return KnowledgeResponseSchema.parse(
+        await addUnansweredToKnowledge(db, auth.businessId, codes, item, auth.userId),
       );
     });
 

@@ -15,8 +15,11 @@ import type {
   LoginRequest,
   MeResponse,
   MetricsResponse,
+  PasswordChange,
   PlatformBusinessList,
   PreviewChatRequest,
+  UnansweredAdd,
+  UnansweredListResponse,
   UserCreate,
   UserListResponse,
   UserPatch,
@@ -81,6 +84,7 @@ export const api = {
   login: (body: LoginRequest) => request<MeResponse>("POST", "/v1/auth/login", body),
   logout: () => request<void>("POST", "/v1/auth/logout"),
   me: () => request<MeResponse>("GET", "/v1/auth/me"),
+  changePassword: (body: PasswordChange) => request<void>("POST", "/v1/auth/password", body),
 
   business: () => request<BusinessResponse>("GET", "/v1/admin/business"),
   updateBusiness: (body: BusinessSettings) =>
@@ -95,6 +99,12 @@ export const api = {
   knowledge: () => request<KnowledgeResponse>("GET", "/v1/admin/knowledge"),
   replaceKnowledge: (items: KnowledgeItemInput[]) =>
     request<KnowledgeResponse>("PUT", "/v1/admin/knowledge", { items }),
+
+  unanswered: () => request<UnansweredListResponse>("GET", "/v1/admin/unanswered"),
+  dismissUnanswered: (codes: string[]) =>
+    request<void>("POST", "/v1/admin/unanswered/dismiss", { codes }),
+  addUnanswered: (body: UnansweredAdd) =>
+    request<KnowledgeResponse>("POST", "/v1/admin/unanswered/knowledge", body),
 
   handoffs: (status?: HandoffStatus, cursor?: string) =>
     request<HandoffListResponse>("GET", `/v1/admin/handoffs${qs({ status, cursor })}`),

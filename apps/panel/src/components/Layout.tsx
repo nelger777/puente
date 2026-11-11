@@ -20,6 +20,7 @@ function Nav() {
     { to: "/probar", label: "Probar" },
     { to: "/configuracion", label: "Configuración" },
     { to: "/base", label: "Base de conocimiento", only: "admin" },
+    { to: "/sin-respuesta", label: "Sin respuesta", only: "admin" },
     { to: "/usuarios", label: "Usuarios", only: "admin" },
     { to: "/instalacion", label: "Instalación" },
     { to: "/empresas", label: "Empresas", only: "platform" },
@@ -120,6 +121,9 @@ export function Layout() {
           <Nav />
           <div className="side-foot">
             <span className="muted small">{me?.user.email}</span>
+            <NavLink to="/cuenta" className="small">
+              Mi cuenta
+            </NavLink>
             <button type="button" className="btn ghost small" onClick={() => void logout()}>
               Cerrar sesión
             </button>

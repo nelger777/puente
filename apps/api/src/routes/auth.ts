@@ -1,10 +1,15 @@
-import { LoginRequestSchema, MeResponseSchema, type MeResponse } from "@puente/shared";
+import {
+  LoginRequestSchema,
+  MeResponseSchema,
+  PasswordChangeSchema,
+  type MeResponse,
+} from "@puente/shared";
 import type { FastifyInstance, FastifyReply } from "fastify";
 import type { Db } from "../db/client";
 import type { IpRateLimiter } from "../engine/rate-limits";
 import { authOf, requirePanelOrigin, requireSession, type AuthContext } from "../lib/auth-guard";
 import { ApiError, parseInput } from "../lib/errors";
-import { login, logout, SESSION_COOKIE, SESSION_TTL_MS } from "../services/auth";
+import { changePassword, login, logout, SESSION_COOKIE, SESSION_TTL_MS } from "../services/auth";
 
 export interface AuthRoutesDeps {
   db: Db;
@@ -65,6 +70,17 @@ export function authRoutes(deps: AuthRoutesDeps) {
     app.post("/auth/logout", { preHandler: session }, async (request, reply) => {
       await logout(deps.db, deps.sessionSecret, authOf(request).sessionToken);
       void reply.clearCookie(SESSION_COOKIE, { path: "/" });
+      return reply.code(204).send();
+    });
+
+    // Rate-limited per user: a stolen session must not become a way to guess the password.
+    app.post("/auth/password", { preHandler: session }, async (request, reply) => {
+      const auth = authOf(request);
+      if (!deps.limiter.hit(`password:${auth.userId}`, deps.now().getTime())) {
+        throw new ApiError(429, "rate_limited", "Demasiados intentos. Espera un minuto.");
+      }
+      const { currentPassword, newPassword } = parseInput(PasswordChangeSchema, request.body);
+      await changePassword(deps.db, auth.userId, auth.sessionId, currentPassword, newPassword);
       return reply.code(204).send();
     });
 

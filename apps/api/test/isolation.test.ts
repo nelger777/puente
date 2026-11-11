@@ -187,6 +187,19 @@ describe("panel API", () => {
     expect(items.map((h) => h.code)).not.toContain(a.code);
   });
 
+  it("does not let B review A's cases from Sin respuesta", async () => {
+    const add = await panel(b.cookie, "POST", "/v1/admin/unanswered/knowledge", {
+      codes: [a.code],
+      item: { question: "¿De A?", answer: "No." },
+    });
+    expect(add.statusCode).toBe(404);
+    expect(
+      (await panel(b.cookie, "POST", "/v1/admin/unanswered/dismiss", { codes: [a.code] }))
+        .statusCode,
+    ).toBe(404);
+    expect(await db.handoffEvent.count({ where: { type: { startsWith: "knowledge_" } } })).toBe(0);
+  });
+
   it("changes only B's data when B saves settings or knowledge", async () => {
     const before = await db.business.findUniqueOrThrow({ where: { id: a.businessId } });
     const current = BusinessResponseSchema.parse(

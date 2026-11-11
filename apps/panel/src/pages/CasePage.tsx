@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { api } from "../api/client";
+import { useIsAdmin } from "../auth";
 import { Card, ErrorNote, Loading, PageHeader, ReasonTag, StatusTag } from "../components/ui";
 import { eventLabel, formatDate, waChatUrl } from "../lib/format";
 import { useApi } from "../lib/use-api";
@@ -9,6 +10,7 @@ import { usePending } from "../pending";
 export function CasePage() {
   const { code = "" } = useParams();
   const { refresh } = usePending();
+  const isAdmin = useIsAdmin();
   const handoff = useApi(() => api.handoff(code), [code]);
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<Error | null>(null);
@@ -103,6 +105,14 @@ export function CasePage() {
                   {h.status === "PENDING" ? "Marcar atendido" : "Reabrir"}
                 </button>
               </div>
+              {isAdmin &&
+              h.reason === "NO_INFORMATION" &&
+              !h.events.some((e) => e.type.startsWith("knowledge_")) ? (
+                <p className="small">
+                  El asistente no tenía esta respuesta.{" "}
+                  <Link to="/sin-respuesta">Agrégala a la base desde Sin respuesta</Link>.
+                </p>
+              ) : null}
               {h.contactPhone && !h.contactPhone.trim().startsWith("+") ? (
                 <p className="muted small">
                   Si el teléfono no tiene código de país, WhatsApp puede no abrir el chat correcto.

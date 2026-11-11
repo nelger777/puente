@@ -96,3 +96,22 @@ export async function findSession(db: Db, secret: string, token: string, now: Da
 export async function logout(db: Db, secret: string, token: string): Promise<void> {
   await db.session.deleteMany({ where: { tokenHash: hashSessionToken(secret, token) } });
 }
+
+/** Own password change: checks the current one, keeps this session and closes the others. */
+export async function changePassword(
+  db: Db,
+  userId: string,
+  sessionId: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  const user = await db.user.findUniqueOrThrow({ where: { id: userId } });
+  if (!(await verifyPassword(user.passwordHash, currentPassword))) {
+    throw new ApiError(400, "wrong_password", "La contraseña actual no es correcta.");
+  }
+  const passwordHash = await hashPassword(newPassword);
+  await db.$transaction([
+    db.user.update({ where: { id: userId }, data: { passwordHash } }),
+    db.session.deleteMany({ where: { userId, id: { not: sessionId } } }),
+  ]);
+}
